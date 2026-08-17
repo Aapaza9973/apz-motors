@@ -77,7 +77,7 @@ class VentaController extends Controller
     public function show(Venta $venta): View
     {
         return view('ventas.show', [
-            'venta' => $venta->load('detalles.producto', 'cliente', 'usuario', 'pagos'),
+            'venta' => $venta->load('detalles.producto', 'cliente', 'usuario', 'pagos', 'pedido'),
         ]);
     }
 }

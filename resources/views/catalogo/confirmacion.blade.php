@@ -42,6 +42,16 @@
                     </table>
                 </div>
 
+                @if ($pedido->estaPagado())
+                    <div class="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        <span class="font-semibold">Pago en línea confirmado</span> — pagaste con {{ $pedido->metodo_pago }}. La venta se generará ya pagada.
+                    </div>
+                @else
+                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                        <span class="font-semibold">Pagarás al recibir</span> — abonás {{ $pedido->metodo_pago }} en el taller cuando retirás.
+                    </div>
+                @endif
+
                 <div class="flex gap-3 mt-6">
                     <a href="{{ route('catalogo.index') }}" class="btn-flame flex-1 justify-center">Volver al catálogo</a>
                     <a href="{{ route('pedidos.estado', ['pedido' => $pedido, 'telefono' => $pedido->telefono]) }}" class="btn-ghost flex-1 justify-center">Ver estado del pedido</a>

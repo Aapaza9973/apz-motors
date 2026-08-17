@@ -20,7 +20,10 @@
             </form>
 
             @can('crear productos')
-                <a href="{{ route('productos.create') }}" class="bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-700 transition">+ Nuevo producto</a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('productos.importar') }}" class="bg-white border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition">Importar CSV</a>
+                    <a href="{{ route('productos.create') }}" class="bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-orange-700 transition">+ Nuevo producto</a>
+                </div>
             @endcan
         </div>
 

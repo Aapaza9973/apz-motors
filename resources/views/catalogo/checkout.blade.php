@@ -46,6 +46,34 @@
                     @error('nota')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
+                <div>
+                    <p class="block text-sm font-medium text-gray-700">Método de pago</p>
+                    <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        @php($metodos = [
+                            'Efectivo' => ['título' => 'Pagar al recibir', 'detalle' => 'Abonás en el taller cuando retirás.', 'sim' => false],
+                            'Stripe' => ['título' => 'Tarjeta (Stripe)', 'detalle' => 'Pagás ahora con tarjeta.', 'sim' => $pagoSimulacion['Stripe']],
+                            'PayPal' => ['título' => 'PayPal', 'detalle' => 'Pagás ahora con tu cuenta PayPal.', 'sim' => $pagoSimulacion['PayPal']],
+                        ])
+                        @foreach ($metodos as $valor => $metodo)
+                            <label class="relative flex items-start gap-2.5 rounded-xl border p-3.5 cursor-pointer transition has-[:checked]:border-orange-500 has-[:checked]:ring-1 has-[:checked]:ring-orange-500 {{ old('metodo_pago', 'Efectivo') === $valor ? 'border-orange-500 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300' }}">
+                                <input type="radio" name="metodo_pago" value="{{ $valor }}" @checked(old('metodo_pago', 'Efectivo') === $valor)
+                                    class="mt-0.5 accent-orange-600">
+                                <span>
+                                    <span class="block text-sm font-semibold text-gray-900">{{ $metodo['título'] }}</span>
+                                    <span class="block text-xs text-gray-500 mt-0.5">{{ $metodo['detalle'] }}
+                                        @if ($metodo['sim'])
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-amber-700">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>modo simulación
+                                            </span>
+                                        @endif
+                                    </span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @error('metodo_pago')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
                 <button type="submit" class="btn-flame">Confirmar pedido</button>
             </form>
 

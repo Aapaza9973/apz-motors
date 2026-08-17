@@ -36,6 +36,22 @@
                     <p class="text-sm text-gray-600">Tu pedido fue <b>cancelado</b>. No se descontó stock y no hay cargos pendientes. Consultanos al taller si necesitás algo.</p>
                 @endif
 
+                @if ($pedido->estaPagado())
+                    <div class="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                        <span class="font-semibold">Pago: Bs {{ number_format($pedido->total, 2) }}</span> — abonado con {{ $pedido->metodo_pago }}.
+                    </div>
+                @else
+                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                        <span class="font-semibold">Pago al recibir</span> — abonás {{ $pedido->metodo_pago }} en el taller.
+                    </div>
+                @endif
+
+                @if ($pedido->clienteConfirmo())
+                    <div class="mt-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                        Confirmaste tu pedido el {{ $pedido->cliente_confirmado_en->format('d/m/Y H:i') }} — el taller ya lo tiene priorizado.
+                    </div>
+                @endif
+
                 <table class="mt-6 min-w-full divide-y divide-gray-100 text-sm">
                     <thead class="bg-gray-50">
                         <tr class="text-left text-xs uppercase tracking-wider text-gray-500">

@@ -69,10 +69,38 @@
             </div>
 
             <div class="space-y-4">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100">
-                        <p class="eyebrow !text-[9px] text-gray-500">Datos del cliente</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <p class="eyebrow !text-[9px] text-gray-500">Pago</p>
+                </div>
+                <dl class="divide-y divide-gray-100 text-sm">
+                    <div class="flex justify-between px-6 py-2.5">
+                        <dt class="text-gray-500">Estado</dt>
+                        <dd>
+                            @if ($pedido->estaPagado())
+                                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wide text-emerald-700">Pagado</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-wide text-amber-700">Pendiente</span>
+                            @endif
+                        </dd>
                     </div>
+                    <div class="flex justify-between px-6 py-2.5">
+                        <dt class="text-gray-500">Método</dt>
+                        <dd class="text-gray-900">{{ $pedido->metodo_pago ?: '—' }}</dd>
+                    </div>
+                    @if ($pedido->referencia_pago)
+                        <div class="flex justify-between px-6 py-2.5">
+                            <dt class="text-gray-500">Referencia</dt>
+                            <dd class="num text-gray-900 text-xs">{{ $pedido->referencia_pago }}</dd>
+                        </div>
+                    @endif
+                </dl>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <p class="eyebrow !text-[9px] text-gray-500">Datos del cliente</p>
+                </div>
                     <dl class="divide-y divide-gray-100 text-sm">
                         <div class="flex justify-between px-6 py-2.5">
                             <dt class="text-gray-500">Nombre</dt>
@@ -98,6 +126,12 @@
                             <div class="px-6 py-2.5">
                                 <dt class="text-gray-500 text-xs mb-1">Nota</dt>
                                 <dd class="text-gray-800 text-xs">{{ $pedido->nota }}</dd>
+                            </div>
+                        @endif
+                        @if ($pedido->clienteConfirmo())
+                            <div class="px-6 py-2.5">
+                                <dt class="text-gray-500 text-xs mb-1">Confirmación del cliente</dt>
+                                <dd class="text-blue-700 text-xs font-medium">Confirmó el {{ $pedido->cliente_confirmado_en->format('d/m/Y H:i') }}</dd>
                             </div>
                         @endif
                     </dl>

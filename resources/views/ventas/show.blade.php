@@ -35,6 +35,21 @@
                 </div>
             </div>
 
+            @if ($venta->pedido)
+                @php $pedido = $venta->pedido; @endphp
+                <a href="{{ route('pedidos.show', $pedido) }}"
+                   class="block px-6 py-3 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100 hover:from-orange-100 hover:to-amber-100 transition">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-6 h-2.5 rounded-sm shrink-0" style="background: repeating-linear-gradient(-45deg, #17181c 0 4px, #f54505 4px 8px);"></span>
+                            <span class="font-semibold text-gray-800">Origen: pedido en línea #{{ $pedido->id }}</span>
+                            <span class="text-xs text-gray-500">del catálogo público — {{ $pedido->created_at->format('d/m/Y H:i') }}</span>
+                        </div>
+                        <span class="text-xs font-medium text-orange-700">Ver pedido →</span>
+                    </div>
+                </a>
+            @endif
+
             <!-- Detalle -->
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">

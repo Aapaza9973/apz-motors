@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CategoriaController;
 use App\Http\Controllers\Admin\ProductoController;
+use App\Http\Controllers\Admin\ProductoImportacionController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AlertaController;
@@ -37,6 +38,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:crear productos')->group(function () {
         Route::get('/productos/crear', [ProductoController::class, 'create'])->name('productos.create');
         Route::post('/productos', [ProductoController::class, 'store'])->name('productos.store');
+        // Importación masiva desde CSV (validación previa + reporte).
+        Route::get('/productos/importar', [ProductoImportacionController::class, 'formulario'])->name('productos.importar');
+        Route::post('/productos/importar/preview', [ProductoImportacionController::class, 'vistaPrevia'])->name('productos.importar.preview');
+        Route::post('/productos/importar', [ProductoImportacionController::class, 'importar'])->name('productos.importar.ejecutar');
+        Route::post('/productos/importar/cancelar', [ProductoImportacionController::class, 'cancelar'])->name('productos.importar.cancelar');
+        Route::get('/productos/importar/plantilla', [ProductoImportacionController::class, 'plantilla'])->name('productos.importar.plantilla');
+        // Reporte de movimientos de stock de una importación (lote IMP-…).
+        Route::get('/productos/importar/movimientos/{lote}', [ProductoImportacionController::class, 'reporteMovimientos'])->name('productos.importar.reporte');
     });
     Route::middleware('can:ver productos')->get('/productos/{producto}', [ProductoController::class, 'show'])->name('productos.show');
     Route::middleware('can:editar productos')->group(function () {
@@ -152,6 +161,12 @@ Route::get('/catalogo/pedidos/{pedido}', [PedidoController::class, 'confirmacion
 Route::get('/catalogo/consultar', [PedidoController::class, 'consultarForm'])->name('pedidos.consultar');
 Route::post('/catalogo/consultar', [PedidoController::class, 'consultar'])->name('pedidos.consultar-enviar');
 Route::get('/catalogo/pedidos/{pedido}/estado', [PedidoController::class, 'estado'])->name('pedidos.estado');
+// Pago en línea del catálogo (retorno de pasarela y simulación sin claves API).
+Route::get('/catalogo/pedidos/{pedido}/pago/{metodo}', [PedidoController::class, 'pagoRetorno'])->name('pedidos.pago.retorno');
+Route::get('/catalogo/pedidos/{pedido}/pago/simular/{metodo}', [PedidoController::class, 'pagoSimular'])->name('pedidos.pago.simular');
+// Acciones del cliente desde el correo (enlace seguro con token).
+Route::get('/catalogo/pedidos/{pedido}/confirmar/{token}', [PedidoController::class, 'confirmarCliente'])->name('pedidos.confirmar-cliente');
+Route::get('/catalogo/pedidos/{pedido}/cancelar/{token}', [PedidoController::class, 'cancelarCliente'])->name('pedidos.cancelar-cliente');
 
 // Webhook de Stripe (sin CSRF ni autenticación: lo firma la propia pasarela).
 Route::post('/webhooks/stripe', [PagoController::class, 'webhookStripe'])

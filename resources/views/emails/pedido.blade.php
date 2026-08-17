@@ -46,10 +46,37 @@
 
             @if ($estado === 'recibido')
                 <h1 style="margin-top:12px;">Hola {{ $pedido->nombre_cliente }}, tu pedido fue recibido</h1>
-                <p>Ya está en la bandeja del taller. Te llamaremos al <b>{{ $pedido->telefono }}</b> para coordinar la entrega y el pago.</p>
+                <p>Ya está en la bandeja del taller. Te llamaremos al <b>{{ $pedido->telefono }}</b> para coordinar la entrega y el pago.
+                @if ($pedido->estaPagado())
+                    <br><br>Tu pedido ya quedó <b>pagado</b> ({{ $pedido->metodo_pago }}).
+                @endif
+                </p>
+
+                @if ($pedido->token)
+                    <p style="margin-top:16px;">Antes de que el taller lo procese podés:</p>
+                    <table style="width:100%; border-collapse:collapse; margin-top:8px;">
+                        <tr>
+                            <td style="padding:4px 0;">
+                                <a class="boton" style="display:inline-block; background:#16794b;" href="{{ route('pedidos.confirmar-cliente', ['pedido' => $pedido, 'token' => $pedido->token]) }}">Confirmar mi pedido</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:4px 0;">
+                                <a class="boton" style="display:inline-block; background:#6b7076;" href="{{ route('pedidos.cancelar-cliente', ['pedido' => $pedido, 'token' => $pedido->token]) }}">Cancelar mi pedido</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <p style="font-size:11px; color:#8b9097; margin-top:8px;">Si no hiciste este pedido, ignorá este correo o usá el enlace de cancelación.</p>
+                @endif
             @elseif ($estado === 'confirmado')
                 <h1 style="margin-top:12px;">Tu pedido fue confirmado</h1>
-                <p>El taller confirmó tu pedido y se generó la <b>venta #{{ $ventaId }}</b>. El stock ya fue apartado para vos.</p>
+                <p>El taller confirmó tu pedido y se generó la <b>venta #{{ $ventaId }}</b>.
+                @if ($pedido->estaPagado())
+                    Tu pago ({{ $pedido->metodo_pago }}) ya está registrado como completado.
+                @else
+                    El stock ya fue apartado; quedó pendiente el pago al recibir.
+                @endif
+                </p>
             @else
                 <h1 style="margin-top:12px;">Tu pedido fue cancelado</h1>
                 <p>El taller canceló tu pedido. No se descontó stock y no hay ningún cargo pendiente. Consultanos al taller si necesitás ayuda.</p>
