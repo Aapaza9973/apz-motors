@@ -37,6 +37,8 @@ class RoleSeeder extends Seeder
             'crear devoluciones',
             'ver cierres de caja',
             'crear cierres de caja',
+            'ver pedidos',
+            'confirmar pedidos',
         ],
         'Inventario' => [
             'ver productos',
@@ -63,6 +65,8 @@ class RoleSeeder extends Seeder
         'usuarios' => ['ver', 'crear', 'editar', 'eliminar'],
         'devoluciones' => ['ver', 'crear', 'aprobar'],
         'cierres de caja' => ['ver', 'crear'],
+        'pedidos' => ['ver', 'confirmar'],
+        'respaldos' => ['ver'],
     ];
 
     private const PERMISOS_EXTRA = [

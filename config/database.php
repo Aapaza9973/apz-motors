@@ -32,6 +32,9 @@ return [
     'backup' => [
         'mysqldump_path' => env('BACKUP_MYSQLDUMP_PATH', 'mysqldump'),
         'gzip_path' => env('BACKUP_GZIP_PATH', 'gzip'),
+        // Destinatario de la notificación de respaldo (éxito/fallo).
+        // Si está vacío, se usa el correo del primer usuario con rol Admin.
+        'notify_email' => env('BACKUP_NOTIFY_EMAIL'),
     ],
 
     /*
