@@ -12,7 +12,7 @@ Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de
 |---|---|
 | **Autenticación** | Breeze en español, verificación de correo, traducciones propias (`lang/es/`), zona horaria `America/La_Paz` |
 | **Roles y permisos** | 5 roles (Admin, Vendedor, Inventario, Soporte, Cliente) con la matriz del Documento Maestro; rutas protegidas por permiso |
-| **Productos y categorías** | CRUD completo, stock, umbral de alerta y trazabilidad de movimientos (entrada, ajuste, venta, devolución) |
+| **Productos y categorías** | CRUD completo, stock, umbral de alerta, trazabilidad de movimientos (entrada, ajuste, venta, devolución) e **importación masiva desde CSV** (validación previa fila por fila + reporte) |
 | **Punto de venta (POS)** | Carrito en vivo, descuento atómico de stock (`lockForUpdate`), comprobante imprimible |
 | **Pagos en línea** | Stripe (Checkout Session + webhook firmado) y PayPal (REST); **modo simulación** automático sin claves API |
 | **Devoluciones** | Solicitud con motivo, aprobación por Admin, reembolso y reposición automática de stock |
@@ -20,7 +20,7 @@ Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de
 | **Reportes** | Ventas por rango (hoy/semana/mes/personalizado), productos más vendidos, inventario con valor en stock; exportación **PDF** (DomPDF) y **Excel/CSV** con identidad corporativa |
 | **Alertas de stock** | Automáticas al bajar del umbral, bandeja con "marcar leída" y notificación en la barra |
 | **Catálogo público** | Página pública (`/catalogo`) con banner de marca, filtros por categoría y disponibilidad en tiempo real |
-| **Pedidos en línea** | Carrito en sesión → checkout con datos del cliente → **bandeja interna** donde el vendedor confirma y convierte en venta (revalida stock y genera cliente); **correos al cliente** por estado y **consulta pública de estado** por número + teléfono |
+| **Pedidos en línea** | Carrito en sesión → checkout con datos del cliente y **pago en línea (Stripe/PayPal o simulación)** → **bandeja interna** donde el vendedor confirma y convierte en venta (revalida stock, genera cliente y registra el pago Completado); **correos al cliente** por estado con **enlace seguro (token)** para confirmar/cancelar y **consulta pública de estado** |
 | **Tablero de instrumentos** | KPIs del día + panel de instrumentos: tacómetro de ventas y medidor de salud de stock (SVG con datos reales) |
 | **Respaldo diario** | `php artisan backup:database` (mysqldump + gzip, retención 7 días) programado en el scheduler; **historial consultable** en la app y **correo** al administrador en cada ejecución |
 | **Monitoreo** | Laravel Telescope (Fase 3) con gate de Admin y etiquetado de auditoría por usuario/rol |
@@ -82,7 +82,22 @@ El catálogo público permite armar pedidos sin cuenta: el visitante agrega repu
 
 - El vendedor **confirma** el pedido: se revalida el stock actual, se crea o reutiliza el cliente y se genera la venta (descuento atómico de stock). También puede **cancelarlo**.
 - El cliente recibe un **correo con la identidad de marca** en cada cambio de estado: *recibido* (al hacer el pedido), *confirmado* (con el número de venta) y *cancelado*. Solo se envía si dejó un correo, y un fallo de envío nunca rompe el flujo.
+- **Pago en línea en el checkout**: el cliente elige pagar al recibir o pagar ahora con Stripe/PayPal (modo simulación automático sin claves API). Si pagó, la venta generada al confirmar nace **Pagada con el pago Completado** y la referencia de la pasarela.
+- **Enlace seguro con token en el correo**: cada pedido con correo lleva un token único de 48 caracteres. Desde el correo, el cliente puede **confirmar** (queda priorizado para el taller) o **cancelar** su pedido antes de que el taller lo procese; el token solo funciona mientras el pedido está Pendiente y se compara con `hash_equals`.
 - **Consulta pública de estado** (`/catalogo/consultar`, enlazado en el pie del catálogo y en el correo): con el número de pedido y el teléfono, el cliente ve el estado actual sin estar autenticado (el teléfono valida que la página no se abra con datos ajenos).
+- **Notificación interna**: campana en la barra superior con el conteo de pedidos pendientes (además del badge del sidebar), visible para quien tenga el permiso de ver pedidos.
+- **Aviso al taller por WhatsApp/push**: al llegar un pedido, además de la campana, se notifica al taller (`app/Notifications/PedidoRecibidoTaller` + canal `WhatsAppChannel`). Sin proveedor configurado el aviso queda en el log (modo seguro); para activarlo hay que setear `WHATSAPP_ENABLED=true`, `WHATSAPP_WEBHOOK_URL`, `WHATSAPP_TOKEN` y `NOTIFY_TALLER_PHONE` (el canal hace un POST con `{"to","text","token"}` — compatible con la Messages API de Twilio o un webhook propio). Un fallo de envío nunca rompe el flujo del pedido.
+- **Bandeja con filtros y paginación**: la bandeja interna pagina de a 15 y permite filtrar por estado del pedido y por estado de pago (Pagados en línea / Pago al recibir), con una columna dedicada que muestra el método de pago.
+- **Venta con origen del pedido**: el detalle de una venta generada desde un pedido en línea muestra una franja "Origen: pedido en línea #N" con enlace a la orden original (relación `Venta::pedido()`).
+
+## 📦 Importación de productos desde CSV
+
+Desde **Productos → Importar CSV** (Admin/Inventario) se puede cargar el catálogo en masa:
+
+- Archivo CSV con separador `;`, UTF-8 y primera fila de encabezados: `nombre;categoria;precio_unitario;stock;umbral_alerta;costo;descripcion;tipo` (solo las 4 primeras son obligatorias). Se descarga una **plantilla de ejemplo** desde la misma página.
+- **Validación previa**: el archivo se analiza y se muestra una vista previa con el estado de cada fila (lista / error con el motivo) y la **acción prevista** — `Nuevo` si no existe un producto con ese nombre, `Actualizar` si ya hay uno (se actualizan precio, costo, categoría y stock **sin crear duplicados**) — antes de tocar la base de datos.
+- **Importación por lotes**: cada importación genera un **lote** (`IMP-20260817-103129`) que queda embebido en el motivo de todos sus movimientos de stock; el panel de resultado muestra el resumen (creados / actualizados / errores con detalle) y permite **descargar el reporte CSV de movimientos de ese lote** (producto, tipo, cantidad, stock resultante y quién lo registró) para auditar el cambio.
+- La importación crea las categorías que falten, registra el stock inicial como **movimiento de entrada** y los cambios de stock como **ajustes**, y omite las filas con error reportándolas.
 
 ## 🔍 Auditoría con Telescope
 
@@ -100,10 +115,10 @@ Para auditar la actividad de una persona, abrí Telescope y filtrá por `user:1`
 ## 🧪 Tests
 
 ```bash
-php artisan test   # 94 tests / 306 aserciones (SQLite en memoria, aislado)
+php artisan test   # 117 tests / 435 aserciones (SQLite en memoria, aislado)
 ```
 
-Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → confirmación → venta, con stock insuficiente, cancelación, correos al cliente y consulta pública de estado), historial/notificación de respaldo.
+Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **filtros y paginación de la bandeja**, **origen del pedido en el detalle de venta**) e **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos y reporte descargable), historial/notificación de respaldo.
 
 ## 🔄 CI (GitHub Actions)
 
