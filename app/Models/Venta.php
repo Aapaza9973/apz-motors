@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Venta extends Model
 {
@@ -45,6 +46,12 @@ class Venta extends Model
     public function pagos(): HasMany
     {
         return $this->hasMany(Pago::class);
+    }
+
+    /** Pedido en línea del catálogo que dio origen a esta venta (si existe). */
+    public function pedido(): HasOne
+    {
+        return $this->hasOne(Pedido::class);
     }
 
     public function estaPagada(): bool

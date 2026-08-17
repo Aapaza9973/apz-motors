@@ -8,9 +8,13 @@ use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
+use App\Notifications\Channels\WhatsAppChannel;
+use App\Notifications\PedidoRecibidoTaller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PedidoService
@@ -69,6 +73,11 @@ class PedidoService
                 'nota' => $datos['nota'] ?? null,
                 'total' => round($total, 2),
                 'estado' => 'Pendiente',
+                'metodo_pago' => $datos['metodo_pago'] ?? 'Efectivo',
+                'estado_pago' => 'Pendiente',
+                // Token del correo para que el cliente confirme/cancele
+                // su pedido antes de que el taller lo procese.
+                'token' => Str::random(48),
             ]);
 
             foreach ($lineas as $linea) {
@@ -86,9 +95,10 @@ class PedidoService
             return $pedido->load('items');
         });
 
-        // La notificación va después del commit: si el pedido no se registra,
-        // el cliente no recibe un correo por un pedido inexistente.
+        // Las notificaciones van después del commit: si el pedido no se
+        // registra, nadie recibe avisos por un pedido inexistente.
         $this->notificarCliente($pedido, 'recibido');
+        $this->notificarTaller($pedido);
 
         return $pedido;
     }
@@ -114,10 +124,21 @@ class PedidoService
 
             $cliente = $this->obtenerOCrearCliente($pedido);
 
+            // Si el cliente pagó en línea en el checkout, la venta nace
+            // con el pago Completado y queda directamente Pagada.
+            $pago = $pedido->estaPagado()
+                ? [
+                    'monto' => $pedido->total,
+                    'metodo' => $pedido->metodo_pago ?? 'Efectivo',
+                    'referencia' => $pedido->referencia_pago,
+                ]
+                : null;
+
             $venta = $this->ventas->crearVenta(
                 ['cliente_id' => $cliente?->id, 'estado' => 'Pendiente'],
                 $items,
-                $usuario
+                $usuario,
+                $pago
             );
 
             $pedido->update([
@@ -148,6 +169,65 @@ class PedidoService
         ]);
 
         $this->notificarCliente($pedido->fresh(['items']), 'cancelado');
+    }
+
+    /**
+     * El cliente confirma su pedido desde el correo (enlace con token):
+     * la orden sigue Pendiente para el taller, pero queda registrado que
+     * el cliente la ratificó — prioridad a la hora de procesar.
+     */
+    public function confirmarPorCliente(Pedido $pedido, string $token): void
+    {
+        if (! $pedido->tokenValido($token)) {
+            throw new \DomainException('El enlace no es válido o ya fue utilizado.');
+        }
+
+        if (! $pedido->estaPendiente()) {
+            throw ValidationException::withMessages([
+                'pedido' => "El pedido #{$pedido->id} ya fue procesado por el taller.",
+            ]);
+        }
+
+        $pedido->update(['cliente_confirmado_en' => now()]);
+    }
+
+    /**
+     * El cliente cancela su pedido desde el correo (enlace con token).
+     * Solo puede hacerlo mientras el taller no lo haya procesado.
+     */
+    public function cancelarPorCliente(Pedido $pedido, string $token): void
+    {
+        if (! $pedido->tokenValido($token)) {
+            throw new \DomainException('El enlace no es válido o ya fue utilizado.');
+        }
+
+        if (! $pedido->estaPendiente()) {
+            throw ValidationException::withMessages([
+                'pedido' => "El pedido #{$pedido->id} ya fue procesado por el taller y no se puede cancelar.",
+            ]);
+        }
+
+        $pedido->update(['estado' => 'Cancelado']);
+
+        $this->notificarCliente($pedido->fresh(['items']), 'cancelado');
+    }
+
+    /**
+     * Avisa al taller (WhatsApp / push) que llegó un pedido del catálogo,
+     * además de la campana interna. Sin proveedor configurado el canal
+     * deja el aviso en el log; un fallo nunca rompe el flujo del pedido.
+     */
+    private function notificarTaller(Pedido $pedido): void
+    {
+        try {
+            Notification::route(WhatsAppChannel::class, config('services.whatsapp.to'))
+                ->notify(new PedidoRecibidoTaller($pedido));
+        } catch (\Throwable $e) {
+            Log::warning('Taller: no se pudo notificar el pedido recibido.', [
+                'pedido' => $pedido->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

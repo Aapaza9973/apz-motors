@@ -101,6 +101,7 @@ class VentaService
                     'monto' => $pago['monto'],
                     'metodo' => $pago['metodo'] ?? 'Efectivo',
                     'estado' => 'Completado',
+                    'referencia' => $pago['referencia'] ?? null,
                 ]);
 
                 if (round((float) $pago['monto'], 2) >= round($venta->total, 2)) {

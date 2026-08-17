@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Pago;
+use App\Models\Pedido;
 use App\Models\Venta;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -83,6 +84,156 @@ class PaymentService
         }
 
         return $venta->load('pagos');
+    }
+
+    // ----------------------------------------------------------------------
+    // Pagos de pedidos en línea (catálogo público)
+    // ----------------------------------------------------------------------
+
+    /**
+     * Inicia el cobro de un pedido del catálogo y devuelve la URL a la que
+     * redirigir al cliente (pasarela real o simulación si no hay claves).
+     */
+    public function crearCheckoutPedido(Pedido $pedido, string $metodo): string
+    {
+        if ($this->usaSimulacion($metodo)) {
+            return route('pedidos.pago.simular', ['pedido' => $pedido, 'metodo' => $metodo]);
+        }
+
+        return match ($metodo) {
+            'Stripe' => $this->crearCheckoutStripePedido($pedido),
+            'PayPal' => $this->crearCheckoutPayPalPedido($pedido),
+            default => throw new \InvalidArgumentException("Método de pago no soportado: {$metodo}"),
+        };
+    }
+
+    /**
+     * Marca el pedido como pagado con su referencia. Idempotente: si ya
+     * estaba pagado con el mismo método, no duplica la marca.
+     */
+    public function confirmarPedido(Pedido $pedido, string $metodo, ?string $referencia = null): Pedido
+    {
+        if ($pedido->estado === 'Cancelado') {
+            throw new \DomainException('No se puede cobrar un pedido cancelado.');
+        }
+
+        if (! $pedido->estaPagado()) {
+            $pedido->update([
+                'estado_pago' => 'Pagado',
+                'metodo_pago' => $metodo,
+                'referencia_pago' => $referencia ?? $pedido->referencia_pago,
+            ]);
+        }
+
+        return $pedido->fresh();
+    }
+
+    /** Captura una orden de PayPal aprobada para un pedido del catálogo. */
+    public function capturarPayPalPedido(Pedido $pedido, string $ordenId): Pedido
+    {
+        $this->capturarPayPalOrden($ordenId);
+
+        return $this->confirmarPedido($pedido, 'PayPal', $ordenId);
+    }
+
+    /**
+     * Consulta una sesión de Stripe y, si está pagada, confirma el pedido.
+     */
+    public function confirmarStripePedido(Pedido $pedido, string $sessionId): Pedido
+    {
+        $sesion = (new StripeClient(config('services.stripe.secret')))
+            ->checkout->sessions->retrieve($sessionId);
+
+        if (! ($sesion instanceof StripeSession) || ($sesion->payment_status ?? null) !== 'paid') {
+            throw new \RuntimeException('La sesión de Stripe no está pagada.');
+        }
+
+        return $this->confirmarPedido($pedido, 'Stripe', $sesion->payment_intent ?? $sesion->id);
+    }
+
+    private function crearCheckoutStripePedido(Pedido $pedido): string
+    {
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        $sesion = (new StripeClient(config('services.stripe.secret')))->checkout->sessions->create([
+            'mode' => 'payment',
+            'payment_method_types' => ['card'],
+            'line_items' => [[
+                'price_data' => [
+                    'currency' => strtolower($this->moneda()),
+                    'unit_amount' => $this->aCentavos($pedido->total),
+                    'product_data' => ['name' => "Pedido #{$pedido->id} — APZ Motor's"],
+                ],
+                'quantity' => 1,
+            ]],
+            'metadata' => ['pedido_id' => $pedido->id],
+            'success_url' => route('pedidos.pago.retorno', ['pedido' => $pedido, 'metodo' => 'Stripe']),
+            'cancel_url' => route('pedidos.confirmacion', $pedido),
+        ]);
+
+        return $sesion->url;
+    }
+
+    private function crearCheckoutPayPalPedido(Pedido $pedido): string
+    {
+        $base = config('services.paypal.mode') === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        $token = Http::asForm()
+            ->withBasicAuth(config('services.paypal.client_id'), config('services.paypal.secret'))
+            ->post("{$base}/v1/oauth2/token", ['grant_type' => 'client_credentials'])
+            ->throw()
+            ->json('access_token');
+
+        $orden = Http::withToken($token)
+            ->post("{$base}/v2/checkout/orders", [
+                'intent' => 'CAPTURE',
+                'purchase_units' => [[
+                    'reference_id' => "pedido-{$pedido->id}",
+                    'description' => "Pedido #{$pedido->id} — APZ Motor's",
+                    'amount' => [
+                        'currency_code' => $this->moneda(),
+                        'value' => number_format((float) $pedido->total, 2, '.', ''),
+                    ],
+                ]],
+                'application_context' => [
+                    'return_url' => route('pedidos.pago.retorno', ['pedido' => $pedido, 'metodo' => 'PayPal']),
+                    'cancel_url' => route('pedidos.confirmacion', $pedido),
+                ],
+            ])
+            ->throw()
+            ->json();
+
+        foreach ($orden['links'] ?? [] as $enlace) {
+            if (($enlace['rel'] ?? '') === 'approve') {
+                return $enlace['href'];
+            }
+        }
+
+        throw new \RuntimeException('PayPal no devolvió un enlace de aprobación.');
+    }
+
+    private function capturarPayPalOrden(string $ordenId): void
+    {
+        $base = config('services.paypal.mode') === 'live'
+            ? 'https://api-m.paypal.com'
+            : 'https://api-m.sandbox.paypal.com';
+
+        $token = Http::asForm()
+            ->withBasicAuth(config('services.paypal.client_id'), config('services.paypal.secret'))
+            ->post("{$base}/v1/oauth2/token", ['grant_type' => 'client_credentials'])
+            ->throw()
+            ->json('access_token');
+
+        $respuesta = Http::withToken($token)
+            ->post("{$base}/v2/checkout/orders/{$ordenId}/capture")
+            ->throw()
+            ->json();
+
+        if (($respuesta['status'] ?? null) !== 'COMPLETED') {
+            throw new \RuntimeException("PayPal no completó la captura (estado: ".($respuesta['status'] ?? 'desconocido').').');
+        }
     }
 
     /**

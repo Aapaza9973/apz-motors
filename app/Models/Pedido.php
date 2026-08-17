@@ -21,12 +21,18 @@ class Pedido extends Model
         'estado',
         'user_id',
         'venta_id',
+        'metodo_pago',
+        'estado_pago',
+        'referencia_pago',
+        'token',
+        'cliente_confirmado_en',
     ];
 
     protected function casts(): array
     {
         return [
             'total' => 'decimal:2',
+            'cliente_confirmado_en' => 'datetime',
         ];
     }
 
@@ -49,5 +55,24 @@ class Pedido extends Model
     public function estaPendiente(): bool
     {
         return $this->estado === 'Pendiente';
+    }
+
+    public function estaPagado(): bool
+    {
+        return $this->estado_pago === 'Pagado';
+    }
+
+    /** El cliente confirmó el pedido desde el correo (antes del taller). */
+    public function clienteConfirmo(): bool
+    {
+        return $this->cliente_confirmado_en !== null;
+    }
+
+    /** Verifica el token del correo de forma segura (comparación de hash). */
+    public function tokenValido(?string $token): bool
+    {
+        return $this->token !== null
+            && $token !== null
+            && hash_equals($this->token, $token);
     }
 }
