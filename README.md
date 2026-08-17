@@ -21,6 +21,7 @@ Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de
 | **Alertas de stock** | Automáticas al bajar del umbral, bandeja con "marcar leída" y notificación en la barra |
 | **Catálogo público** | Página pública (`/catalogo`) con banner de marca, filtros por categoría y disponibilidad en tiempo real |
 | **Pedidos en línea** | Carrito en sesión → checkout con datos del cliente y **pago en línea (Stripe/PayPal o simulación)** → **bandeja interna** donde el vendedor confirma y convierte en venta (revalida stock, genera cliente y registra el pago Completado); **correos al cliente** por estado con **enlace seguro (token)** para confirmar/cancelar y **consulta pública de estado** |
+| **Fidelización de clientes** | Puntos por compra pagada (1 pt por cada Bs 10), canje como descuento en el POS (10 pts = Bs 1), ajustes manuales con trazabilidad y reversión proporcional al aprobar devoluciones |
 | **Tablero de instrumentos** | KPIs del día + panel de instrumentos: tacómetro de ventas y medidor de salud de stock (SVG con datos reales) |
 | **Respaldo diario** | `php artisan backup:database` (mysqldump + gzip, retención 7 días) programado en el scheduler; **historial consultable** en la app y **correo** al administrador en cada ejecución |
 | **Monitoreo** | Laravel Telescope (Fase 3) con gate de Admin y etiquetado de auditoría por usuario/rol |
@@ -101,6 +102,15 @@ Desde **Productos → Importar CSV** (Admin/Inventario) se puede cargar el catá
 - **Historial de importaciones** (`Productos → Historial de importaciones`, enlace en el sidebar y en la página de importación): cada ejecución queda registrada en la tabla `importaciones` con su lote, fecha, resumen (creados / actualizados / errores), la persona que la ejecutó y el **botón de descargar reporte** de esa importación — ya no depende de la última ejecución en sesión.
 - La importación crea las categorías que falten, registra el stock inicial como **movimiento de entrada** y los cambios de stock como **ajustes**, y omite las filas con error reportándolas.
 
+## ⭐ Fidelización de clientes
+El sistema de puntos premia las compras pagadas y se canjea en el punto de venta:
+
+- **Acumulación**: cada venta **Pagada** con cliente acredita 1 punto por cada Bs 10 de compra (configurable con `PUNTOS_BS_POR_PUNTO` en el `.env`). El cálculo se hace sobre el **total efectivamente pagado** (después de descuentos) y es **idempotente**: una venta nunca acredita dos veces, ni siquiera si se confirma el pago en línea dos veces.
+- **Canje en el POS**: en `Ventas → Nueva venta`, al elegir un cliente con saldo aparece el bloque "Canjear puntos de fidelización". Cada 10 puntos descuentan Bs 1 (configurable con `PUNTOS_VALOR_BS`). El saldo se val con bloqueo de fila (`lockForUpdate`) dentro de la misma transacción de la venta, así dos cajeros no pueden canjear el mismo saldo a la vez. El descuento nunca deja el total en negativo.
+- **Ajustes manuales**: en la ficha del cliente (permiso `editar clientes`, Admin) se puede sumar o restar puntos con un **motivo obligatorio** que queda registrado con quién y cuándo se hizo (correcciones, bonificaciones).
+- **Reversión por devolución**: al aprobar una devolución se descuenta la **porción proporcional** de los puntos acumulados por la venta original (según el monto reembolsado sobre el total).
+- **Historial**: la ficha del cliente muestra el saldo actual y el historial paginado de movimientos (acumulados, canjes y ajustes) con su concepto, fecha y responsable.
+
 ## 🔍 Auditoría con Telescope
 
 Laravel Telescope se instala en `TELESCOPE_ENABLED=true` (por defecto en local) y se abre en `/telescope` — el enlace del sidebar solo aparece para el rol **Admin**.
@@ -115,12 +125,11 @@ rol:{rol}   →  p. ej. rol:Admin
 Para auditar la actividad de una persona, abrí Telescope y filtrá por `user:1` (o por `rol:Vendedor` para ver el grupo): se ven sus logins, consultas, ventas registradas y movimientos de stock en orden cronológico, sin tener que revisar la base de datos.
 
 ## 🧪 Tests
-
 ```bash
-php artisan test   # 122 tests / 460 aserciones (SQLite en memoria, aislado)
+php artisan test   # 140 tests / 513 aserciones (SQLite en memoria, aislado)
 ```
 
-Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**) e **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), historial/notificación de respaldo.
+Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
 
 ## 🔄 CI (GitHub Actions)
 
@@ -160,7 +169,8 @@ Decisión documentada: el Documento Maestro proponía Bootstrap; se adoptó **Ta
 - [x] **Fase 2 — Comercial**: pagos en línea (Stripe/PayPal), devoluciones, exportación de reportes
 - [x] **Fase 3 — Operación**: cierre de caja, respaldo diario, Telescope, catálogo público, identidad de marca
 - [x] **Pedidos en línea** desde el catálogo público (carrito → bandeja interna → venta)
-- [ ] Fidelización de clientes · Notificaciones por correo de pedidos · Deploy en VPS (Nginx + PHP-FPM + SSL + backups)
+- [x] **Fidelización de clientes**: puntos por compra, canje en el POS, ajustes y reversión por devolución
+- [ ] Deploy en VPS (Nginx + PHP-FPM + SSL + backups)
 
 ## 📄 Licencia
 

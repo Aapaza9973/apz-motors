@@ -28,4 +28,15 @@ class Cliente extends Model
     {
         return $this->hasMany(Venta::class);
     }
+
+    public function puntos(): HasMany
+    {
+        return $this->hasMany(Punto::class);
+    }
+
+    /** Saldo de puntos disponibles para canjear (nunca negativo). */
+    public function puntosDisponibles(): int
+    {
+        return max(0, (int) $this->puntos()->sum('puntos'));
+    }
 }

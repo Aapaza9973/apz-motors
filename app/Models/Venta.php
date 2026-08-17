@@ -17,6 +17,8 @@ class Venta extends Model
         'user_id',
         'cliente_id',
         'total',
+        'descuento',
+        'puntos_canjeados',
         'estado',
     ];
 
@@ -25,6 +27,8 @@ class Venta extends Model
         return [
             'fecha' => 'datetime',
             'total' => 'decimal:2',
+            'descuento' => 'decimal:2',
+            'puntos_canjeados' => 'integer',
         ];
     }
 
@@ -52,6 +56,12 @@ class Venta extends Model
     public function pedido(): HasOne
     {
         return $this->hasOne(Pedido::class);
+    }
+
+    /** Movimientos de puntos de fidelización ligados a esta venta. */
+    public function puntos(): HasMany
+    {
+        return $this->hasMany(Punto::class);
     }
 
     public function estaPagada(): bool

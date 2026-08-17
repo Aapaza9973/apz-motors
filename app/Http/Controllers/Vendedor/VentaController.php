@@ -40,7 +40,7 @@ class VentaController extends Controller
     public function create(): View
     {
         return view('ventas.create', [
-            'clientes' => Cliente::orderBy('nombre')->get(),
+            'clientes' => Cliente::withSum('puntos as puntos_total', 'puntos')->orderBy('nombre')->get(),
             'productos' => Producto::with('categoria')->where('stock', '>', 0)->orderBy('nombre')->get(),
         ]);
     }
@@ -52,13 +52,18 @@ class VentaController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.producto_id' => ['required', 'integer', 'exists:productos,id'],
             'items.*.cantidad' => ['required', 'integer', 'min:1'],
+            'puntos_canje' => ['nullable', 'integer', 'min:0'],
             'pago_monto' => ['nullable', 'numeric', 'min:0'],
             'pago_metodo' => ['nullable', 'in:Efectivo,Tarjeta,Transferencia,Stripe,PayPal,Otro'],
         ]);
 
         try {
             $venta = $this->ventaService->crearVenta(
-                ['cliente_id' => $datos['cliente_id'] ?? null, 'estado' => 'Pendiente'],
+                [
+                    'cliente_id' => $datos['cliente_id'] ?? null,
+                    'estado' => 'Pendiente',
+                    'puntos_canje' => (int) ($datos['puntos_canje'] ?? 0),
+                ],
                 $datos['items'],
                 $request->user(),
                 $datos['pago_monto'] ?? null
@@ -77,7 +82,7 @@ class VentaController extends Controller
     public function show(Venta $venta): View
     {
         return view('ventas.show', [
-            'venta' => $venta->load('detalles.producto', 'cliente', 'usuario', 'pagos', 'pedido'),
+            'venta' => $venta->load('detalles.producto', 'cliente', 'usuario', 'pagos', 'pedido', 'puntos'),
         ]);
     }
 }

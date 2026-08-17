@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Vendedor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
+use App\Services\PuntosService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ClienteController extends Controller
 {
+    public function __construct(private PuntosService $puntosService) {}
     public function index(Request $request): View
     {
         $query = Cliente::query();
@@ -50,6 +52,8 @@ class ClienteController extends Controller
     {
         return view('clientes.show', [
             'cliente' => $cliente->load('ventas.detalles.producto', 'ventas.usuario'),
+            'saldoPuntos' => $cliente->puntosDisponibles(),
+            'movimientosPuntos' => $cliente->puntos()->with('usuario', 'venta')->latest()->paginate(10),
         ]);
     }
 
@@ -82,5 +86,28 @@ class ClienteController extends Controller
         return redirect()
             ->route('clientes.index')
             ->with('status', "Cliente \"{$nombre}\" eliminado.");
+    }
+
+    /**
+     * Ajuste manual de puntos de fidelización (correcciones/bonificaciones).
+     * Ruta protegida con el permiso 'editar clientes' (Admin).
+     */
+    public function ajustarPuntos(Request $request, Cliente $cliente): RedirectResponse
+    {
+        $datos = $request->validate([
+            'puntos' => ['required', 'integer', 'not_in:0'],
+            'motivo' => ['required', 'string', 'max:255'],
+        ]);
+
+        $this->puntosService->ajustar(
+            $cliente,
+            (int) $datos['puntos'],
+            $datos['motivo'],
+            $request->user()
+        );
+
+        return redirect()
+            ->route('clientes.show', $cliente)
+            ->with('status', 'Ajuste de puntos registrado. Nuevo saldo: '.$cliente->puntosDisponibles().' puntos.');
     }
 }

@@ -9,7 +9,10 @@ use Illuminate\Validation\ValidationException;
 
 class DevolucionService
 {
-    public function __construct(private InventoryService $inventory) {}
+    public function __construct(
+        private InventoryService $inventory,
+        private PuntosService $puntos,
+    ) {}
 
     /**
      * Registra una solicitud de devolución validando contra la venta original.
@@ -87,6 +90,10 @@ class DevolucionService
                 'estado' => 'Aprobada',
                 'monto_reembolso' => $monto,
             ]);
+
+            // Fidelización: revierte la porción proporcional de puntos
+            // acumulados por la venta original.
+            $this->puntos->revertirPorDevolucion($devolucion->venta, $monto, $devolucion->usuario);
         });
 
         return $devolucion->fresh();

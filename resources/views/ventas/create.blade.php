@@ -68,10 +68,20 @@
                         <select id="cliente_id" name="cliente_id" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
                             <option value="">Consumidor final</option>
                             @foreach ($clientes as $cliente)
-                                <option value="{{ $cliente->id }}">{{ $cliente->nombre }}</option>
+                                <option value="{{ $cliente->id }}" data-puntos="{{ max(0, (int) ($cliente->puntos_total ?? 0)) }}">{{ $cliente->nombre }}</option>
                             @endforeach
                         </select>
                         <p class="mt-1 text-xs text-gray-400">¿Cliente nuevo? Regístralo en <a href="{{ route('clientes.create') }}" class="text-orange-600 hover:underline">Clientes</a>.</p>
+                    </div>
+
+                    <div id="bloque-puntos" class="hidden rounded-lg border border-orange-200 bg-orange-50/60 p-3">
+                        <label for="puntos_canje" class="block text-sm font-medium text-gray-700">Canjear puntos de fidelización</label>
+                        <div class="mt-1 flex items-center gap-2">
+                            <input type="number" min="0" step="1" id="puntos_canje" name="puntos_canje" value="0"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
+                            <button type="button" id="btn-max-puntos" class="shrink-0 text-xs font-medium bg-white border border-orange-300 text-orange-700 px-2.5 py-2 rounded-lg hover:bg-orange-100 transition">Canjear máximo</button>
+                        </div>
+                        <p id="puntos-info" class="mt-1.5 text-xs text-gray-600"></p>
                     </div>
 
                     <div>
@@ -107,10 +117,63 @@
 
     <script>
         const carrito = new Map();
+        const PUNTOS_VALOR_BS = {{ json_encode(config('puntos.puntos_por_bs_descuento')) }};
+        let subtotal = 0;
 
         function fmtBs(valor) {
             return 'Bs ' + valor.toFixed(2);
         }
+
+        function saldoPuntos() {
+            const select = document.getElementById('cliente_id');
+            const opcion = select.selectedOptions[0];
+            return opcion && opcion.dataset.puntos !== undefined ? parseInt(opcion.dataset.puntos, 10) : 0;
+        }
+
+        function descuentoPuntos() {
+            const puntos = Math.max(0, parseInt(document.getElementById('puntos_canje').value || '0', 10));
+            return puntos / PUNTOS_VALOR_BS;
+        }
+
+        function recalcularTotales() {
+            const descuento = descuentoPuntos();
+            const total = Math.max(0, subtotal - descuento);
+            document.getElementById('total-venta').textContent = fmtBs(total);
+            if (document.getElementById('cobrar-ahora').checked) {
+                document.getElementById('pago_monto').value = total.toFixed(2);
+            }
+            if (descuento > 0) {
+                document.getElementById('puntos-info').textContent =
+                    `Descuento aplicado: −${fmtBs(Math.min(descuento, subtotal))}. El cliente gana puntos sobre el total pagado.`;
+            }
+        }
+
+        function actualizarBloquePuntos() {
+            const bloque = document.getElementById('bloque-puntos');
+            const saldo = saldoPuntos();
+            bloque.classList.toggle('hidden', saldo <= 0);
+            document.getElementById('puntos-info').textContent = saldo > 0
+                ? `Saldo disponible: ${saldo} puntos (Bs ${fmtBs(saldo / PUNTOS_VALOR_BS)})`
+                : '';
+            if (saldo <= 0) {
+                document.getElementById('puntos_canje').value = 0;
+            }
+            recalcularTotales();
+        }
+
+        document.getElementById('cliente_id').addEventListener('change', actualizarBloquePuntos);
+
+        document.getElementById('puntos_canje').addEventListener('input', function () {
+            const saldo = saldoPuntos();
+            const valor = parseInt(this.value || '0', 10);
+            if (valor > saldo) { this.value = saldo; }
+            recalcularTotales();
+        });
+
+        document.getElementById('btn-max-puntos').addEventListener('click', function () {
+            document.getElementById('puntos_canje').value = saldoPuntos();
+            recalcularTotales();
+        });
 
         document.querySelectorAll('.agregar-producto').forEach((boton) => {
             boton.addEventListener('click', () => {
@@ -172,7 +235,6 @@
             document.getElementById('total-venta').textContent = fmtBs(total);
             document.getElementById('pago_monto').value = total.toFixed(2);
             document.getElementById('btn-confirmar').disabled = carrito.size === 0;
-
             document.querySelectorAll('.cambiar-cantidad').forEach((boton) => {
                 boton.addEventListener('click', () => {
                     const item = carrito.get(boton.dataset.id);

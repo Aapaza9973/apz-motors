@@ -15,6 +15,8 @@ use Stripe\Webhook;
 
 class PaymentService
 {
+    public function __construct(private PuntosService $puntos) {}
+
     /** Moneda configurable (por defecto Bolivianos; operadores pueden usar USD). */
     public function moneda(): string
     {
@@ -81,6 +83,9 @@ class PaymentService
 
         if ($venta->estado !== 'Pagado') {
             $venta->update(['estado' => 'Pagado']);
+
+            // Fidelización: la venta recién pagada acredita puntos al cliente.
+            $this->puntos->acumularPorVenta($venta);
         }
 
         return $venta->load('pagos');

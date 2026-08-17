@@ -53,7 +53,7 @@ class PaymentTest extends TestCase
 
     public function test_flujo_simulado_marca_la_venta_como_pagada(): void
     {
-        $this->assertTrue((new PaymentService)->usaSimulacion('Stripe'));
+        $this->assertTrue(app(PaymentService::class)->usaSimulacion('Stripe'));
 
         $response = $this->actingAs($this->vendedor)
             ->get(route('pagos.simular', ['venta' => $this->venta, 'metodo' => 'Stripe']));
@@ -82,7 +82,7 @@ class PaymentTest extends TestCase
 
     public function test_confirmar_pago_es_idempotente(): void
     {
-        $service = new PaymentService;
+        $service = app(PaymentService::class);
 
         $service->confirmar($this->venta, 'Stripe', 'REF-1');
         $service->confirmar($this->venta, 'Stripe', 'REF-1');
@@ -98,7 +98,7 @@ class PaymentTest extends TestCase
 
         $this->expectException(\DomainException::class);
 
-        (new PaymentService)->confirmar($this->venta, 'Stripe');
+        app(PaymentService::class)->confirmar($this->venta, 'Stripe');
     }
 
     public function test_boton_de_pago_exige_metodo_valido(): void

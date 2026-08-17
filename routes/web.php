@@ -81,6 +81,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     Route::middleware('can:eliminar clientes')->delete('/clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
 
+    // Fidelización: ajuste manual de puntos del cliente (permiso de editar clientes).
+    Route::middleware('can:editar clientes')->post('/clientes/{cliente}/puntos/ajustar', [ClienteController::class, 'ajustarPuntos'])->name('clientes.puntos.ajustar');
+
     // ---- Ventas / Punto de venta (matriz: Admin C/R/U/D · Vendedor C/R) ----
     Route::middleware('can:ver ventas')->get('/ventas', [VentaController::class, 'index'])->name('ventas.index');
     Route::middleware('can:crear ventas')->group(function () {
