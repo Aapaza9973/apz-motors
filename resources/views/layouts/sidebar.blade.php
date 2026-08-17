@@ -58,9 +58,16 @@
         @endcan
 
         @can('ver productos')
-            <a href="{{ route('productos.index') }}" class="nav-link {{ request()->routeIs('productos.*') ? 'nav-active' : '' }}">
+            <a href="{{ route('productos.index') }}" class="nav-link {{ request()->routeIs('productos.*') && ! request()->routeIs('productos.importar.historial') ? 'nav-active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5 flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
                 Productos
+            </a>
+        @endcan
+
+        @can('crear productos')
+            <a href="{{ route('productos.importar.historial') }}" class="nav-link {{ request()->routeIs('productos.importar.historial') ? 'nav-active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5 flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                Historial de importaciones
             </a>
         @endcan
 

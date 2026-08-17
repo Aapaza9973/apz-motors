@@ -2,6 +2,11 @@
     <x-slot name="titulo">Importar productos (CSV)</x-slot>
 
     <div class="max-w-4xl space-y-4">
+        <div class="flex items-center justify-between">
+            <p class="eyebrow !text-[9px] text-gray-500">Inventario · Carga masiva</p>
+            <a href="{{ route('productos.importar.historial') }}" class="link text-xs">Ver historial de importaciones →</a>
+        </div>
+
         @if ($resultado)
             @php
                 $resumen = $resultado;

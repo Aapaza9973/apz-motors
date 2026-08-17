@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\CsvExporter;
 use App\Http\Controllers\Controller;
+use App\Models\Importacion;
 use App\Services\ImportacionProductosService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,6 +74,17 @@ class ProductoImportacionController extends Controller
         session(['importacion_resultado' => $resumen]);
 
         return redirect()->route('productos.importar');
+    }
+
+    /**
+     * Historial de importaciones: cada carga masiva con su lote, resumen
+     * y botón para descargar el reporte de movimientos de esa importación.
+     */
+    public function historial(): View
+    {
+        return view('productos.historial', [
+            'importaciones' => Importacion::with('user')->latest()->paginate(15)->withQueryString(),
+        ]);
     }
 
     /**

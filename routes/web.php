@@ -44,6 +44,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/productos/importar', [ProductoImportacionController::class, 'importar'])->name('productos.importar.ejecutar');
         Route::post('/productos/importar/cancelar', [ProductoImportacionController::class, 'cancelar'])->name('productos.importar.cancelar');
         Route::get('/productos/importar/plantilla', [ProductoImportacionController::class, 'plantilla'])->name('productos.importar.plantilla');
+        // Historial de importaciones: lotes con resumen y reporte descargable.
+        Route::get('/productos/importar/historial', [ProductoImportacionController::class, 'historial'])->name('productos.importar.historial');
         // Reporte de movimientos de stock de una importación (lote IMP-…).
         Route::get('/productos/importar/movimientos/{lote}', [ProductoImportacionController::class, 'reporteMovimientos'])->name('productos.importar.reporte');
     });
