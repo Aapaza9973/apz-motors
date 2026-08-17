@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Categoria;
+use App\Models\Importacion;
 use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
@@ -91,15 +92,17 @@ class ImportacionProductosService
      * Importa las filas ya analizadas: crea o actualiza productos y
      * categorías (coincidencia por nombre, sin duplicados) y registra
      * cada movimiento de stock bajo un mismo lote para poder descargar
-     * el reporte de esa importación. Las filas con errores se omiten.
+     * el reporte de esa importación. Cada ejecución queda guardada en el
+     * historial (tabla `importaciones`) con su lote y resumen. Las filas
+     * con errores se omiten.
      *
      * @param  array<int, array{numero: int, datos: array, errores: array}>  $filas
-     * @return array{creados: int, actualizados: int, errores: int, detalle_errores: array<int, string>, lote: string}
+     * @return array{creados: int, actualizados: int, errores: int, detalle_errores: array<int, string>, lote: string, total_filas: int}
      */
     public function importar(array $filas, ?User $usuario): array
     {
         $lote = 'IMP-'.now()->format('Ymd-His');
-        $resumen = ['creados' => 0, 'actualizados' => 0, 'errores' => 0, 'detalle_errores' => [], 'lote' => $lote];
+        $resumen = ['creados' => 0, 'actualizados' => 0, 'errores' => 0, 'detalle_errores' => [], 'lote' => $lote, 'total_filas' => count($filas)];
 
         DB::transaction(function () use ($filas, $usuario, $lote, &$resumen) {
             foreach ($filas as $fila) {
@@ -149,6 +152,18 @@ class ImportacionProductosService
                     $resumen['creados']++;
                 }
             }
+
+            // Cada importación queda en el historial con su lote y resumen,
+            // para poder consultarla desde Inventario más adelante.
+            Importacion::create([
+                'lote' => $lote,
+                'creados' => $resumen['creados'],
+                'actualizados' => $resumen['actualizados'],
+                'errores' => $resumen['errores'],
+                'total_filas' => $resumen['total_filas'],
+                'user_id' => $usuario?->id,
+                'detalle_errores' => $resumen['detalle_errores'] ?: null,
+            ]);
         });
 
         return $resumen;

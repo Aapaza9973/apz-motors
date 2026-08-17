@@ -2,18 +2,14 @@
 
 namespace App\Services;
 
-use App\Mail\PedidoMail;
+use App\Jobs\NotificarClientePedido;
+use App\Jobs\NotificarTallerPedido;
 use App\Models\Cliente;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
-use App\Notifications\Channels\WhatsAppChannel;
-use App\Notifications\PedidoRecibidoTaller;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -95,10 +91,11 @@ class PedidoService
             return $pedido->load('items');
         });
 
-        // Las notificaciones van después del commit: si el pedido no se
-        // registra, nadie recibe avisos por un pedido inexistente.
-        $this->notificarCliente($pedido, 'recibido');
-        $this->notificarTaller($pedido);
+        // Las notificaciones van a la cola después del commit: si el pedido
+        // no se registra, nadie recibe avisos por uno inexistente, y el
+        // checkout no espera al correo del cliente ni al aviso del taller.
+        NotificarClientePedido::dispatch($pedido->id, 'recibido');
+        NotificarTallerPedido::dispatch($pedido->id);
 
         return $pedido;
     }
@@ -150,7 +147,7 @@ class PedidoService
             return $venta;
         });
 
-        $this->notificarCliente($pedido->fresh(['items']), 'confirmado', $venta->id);
+        NotificarClientePedido::dispatch($pedido->id, 'confirmado', $venta->id);
 
         return $venta;
     }
@@ -168,7 +165,7 @@ class PedidoService
             'user_id' => $usuario->id,
         ]);
 
-        $this->notificarCliente($pedido->fresh(['items']), 'cancelado');
+        NotificarClientePedido::dispatch($pedido->id, 'cancelado');
     }
 
     /**
@@ -209,46 +206,7 @@ class PedidoService
 
         $pedido->update(['estado' => 'Cancelado']);
 
-        $this->notificarCliente($pedido->fresh(['items']), 'cancelado');
-    }
-
-    /**
-     * Avisa al taller (WhatsApp / push) que llegó un pedido del catálogo,
-     * además de la campana interna. Sin proveedor configurado el canal
-     * deja el aviso en el log; un fallo nunca rompe el flujo del pedido.
-     */
-    private function notificarTaller(Pedido $pedido): void
-    {
-        try {
-            Notification::route(WhatsAppChannel::class, config('services.whatsapp.to'))
-                ->notify(new PedidoRecibidoTaller($pedido));
-        } catch (\Throwable $e) {
-            Log::warning('Taller: no se pudo notificar el pedido recibido.', [
-                'pedido' => $pedido->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Notifica al cliente por correo el estado de su pedido (recibido,
-     * confirmado con número de venta o cancelado). Solo si dejó un correo;
-     * un fallo del envío nunca rompe el flujo del pedido.
-     */
-    private function notificarCliente(Pedido $pedido, string $estado, ?int $ventaId = null): void
-    {
-        if (! $pedido->email) {
-            return;
-        }
-
-        try {
-            Mail::to($pedido->email)->send(new PedidoMail($pedido, $estado, $ventaId));
-        } catch (\Throwable $e) {
-            Log::warning('Pedido: no se pudo notificar al cliente por correo.', [
-                'pedido' => $pedido->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        NotificarClientePedido::dispatch($pedido->id, 'cancelado');
     }
 
     /**
