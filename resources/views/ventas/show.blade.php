@@ -2,7 +2,7 @@
     <x-slot name="titulo">Venta #{{ $venta->id }}</x-slot>
 
     <div class="max-w-3xl mx-auto">
-        <div class="comprobante bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="comprobante {{ $papelComprobante === 'carta' ? 'papel-carta' : '' }} bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Encabezado tipo comprobante -->
             <div class="px-6 py-5 border-b border-gray-200 flex flex-wrap items-start justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -90,11 +90,20 @@
             </div>
         </div>
 
-        <div class="mt-4 no-print flex items-center justify-between">
+        <div class="mt-4 no-print flex items-center justify-between gap-3">
             <a href="{{ route('ventas.index') }}" class="text-sm text-gray-600 hover:text-gray-800 font-medium">← Volver a ventas</a>
-            @can('crear ventas')
-                <button onclick="window.print()" class="bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition">Imprimir comprobante</button>
-            @endcan
+            <div class="flex items-center gap-3">
+                <label class="flex items-center gap-2 text-sm text-gray-600">
+                    <span class="text-xs font-medium uppercase tracking-wide text-gray-400">Papel</span>
+                    <select id="papel-comprobante" class="rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm">
+                        <option value="termico" @selected($papelComprobante === 'termico')>Térmico 80 mm</option>
+                        <option value="carta" @selected($papelComprobante === 'carta')>Carta A4</option>
+                    </select>
+                </label>
+                @can('crear ventas')
+                    <button id="btn-imprimir" class="bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition">Imprimir comprobante</button>
+                @endcan
+            </div>
         </div>
 
         @can('crear devoluciones')
@@ -160,13 +169,64 @@
         @endif
     </div>
 
+    <script>
+        // Preferencia de papel del comprobante: se aplica al instante sobre el
+        // comprobante y se persiste por usuario (POST /preferencias/comprobante).
+        const selectorPapel = document.getElementById('papel-comprobante');
+        const comprobante = document.querySelector('.comprobante');
+
+        function aplicarPapel(valor) {
+            if (comprobante) {
+                comprobante.classList.toggle('papel-carta', valor === 'carta');
+            }
+        }
+
+        if (selectorPapel) {
+            selectorPapel.addEventListener('change', () => {
+                aplicarPapel(selectorPapel.value);
+                fetch('{{ route('preferencias.comprobante') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ papel_comprobante: selectorPapel.value }),
+                });
+            });
+        }
+
+        // Auditoría + impresión: primero se registra en Telescope quién imprime
+        // (origen=manual) y después se abre el diálogo de impresión.
+        const botonImprimir = document.getElementById('btn-imprimir');
+        if (botonImprimir) {
+            botonImprimir.addEventListener('click', () => {
+                fetch('{{ route('ventas.imprimir', $venta) }}?origen=manual', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                }).finally(() => window.print());
+            });
+        }
+    </script>
+
     @if (request()->query('imprimir') === '1')
         {{-- Impresión automática al confirmar desde el Punto de Venta: espera
-             el render del comprobante y usa las mismas reglas de impresión
-             aislada (@media print en app.css). --}}
+             el render del comprobante, registra la auditoría (origen=pos) y
+             usa las mismas reglas de impresión aislada (@media print). --}}
         <script data-auto-imprimir>
             window.addEventListener('load', () => {
-                setTimeout(() => window.print(), 300);
+                setTimeout(() => {
+                    fetch('{{ route('ventas.imprimir', $venta) }}?origen=pos', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                        },
+                    }).finally(() => window.print());
+                }, 300);
             });
         </script>
     @endif

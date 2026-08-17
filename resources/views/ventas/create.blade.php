@@ -91,6 +91,15 @@
                         </label>
                     </div>
 
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" id="imprimir_comprobante" name="imprimir_comprobante" value="1"
+                                class="rounded border-gray-300 text-orange-600 focus:ring-orange-500" @checked($imprimirComprobante)>
+                            Imprimir comprobante al confirmar
+                        </label>
+                        <p class="mt-1 text-xs text-gray-400">Se abre el comprobante e imprime automáticamente. La preferencia queda guardada para tus próximas ventas.</p>
+                    </div>
+
                     <div id="bloque-pago" class="grid grid-cols-2 gap-3">
                         <div>
                             <label for="pago_monto" class="block text-sm font-medium text-gray-700">Monto recibido (Bs)</label>
@@ -204,6 +213,19 @@
             document.getElementById('bloque-pago').style.display = e.target.checked ? 'grid' : 'none';
             document.getElementById('pago_monto').disabled = !e.target.checked;
             document.getElementById('pago_metodo').disabled = !e.target.checked;
+        });
+
+        // Persiste la preferencia de autoimpresión por vendedor al cambiarla.
+        document.getElementById('imprimir_comprobante').addEventListener('change', (e) => {
+            fetch('{{ route('preferencias.comprobante') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ imprimir_pos: e.target.checked }),
+            });
         });
 
         function renderCarrito() {

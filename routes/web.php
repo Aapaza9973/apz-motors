@@ -91,6 +91,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/ventas', [VentaController::class, 'store'])->name('ventas.store');
     });
     Route::middleware('can:ver ventas')->get('/ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
+    // Auditoría de impresión del comprobante (quién, venta, origen pos/manual en Telescope).
+    Route::middleware('can:ver ventas')->post('/ventas/{venta}/imprimir', [VentaController::class, 'imprimir'])->name('ventas.imprimir');
+
+    // Preferencias de impresión del usuario autenticado (papel y autoimpresión POS).
+    Route::post('/preferencias/comprobante', [VentaController::class, 'guardarPreferencias'])->name('preferencias.comprobante');
 
     // ---- Pagos en línea (Fase 2): Stripe / PayPal / simulación ----
     Route::middleware('can:ver ventas')->group(function () {

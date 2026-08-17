@@ -373,16 +373,24 @@ td.num {
 }
 
 /* Impresión — solo el comprobante: se oculta el chrome de la app
-   (sidebar, cabecera, pie) y cualquier bloque marcado .no-print. El
-   comprobante sale en formato papel térmico 80 mm: página angosta,
-   márgenes mínimos y tipografía compacta, conservando la identidad. */
-@media print {
-    /* Hoja térmica 80 mm — altura automática según el contenido */
-    @page {
-        size: 80mm auto;
-        margin: 2mm;
-    }
+   (sidebar, cabecera, pie) y cualquier bloque marcado .no-print. Dos
+   formatos según la preferencia del usuario (persistida por usuario):
+   - .papel-termico (predeterminado): rollo 80 mm, tipografía compacta.
+   - .papel-carta: hoja A4 con tipografía estándar.
+   Ambos conservan la identidad (logo, cinta, colores) a color. */
 
+/* Páginas nombradas: la clase del comprobante elige el tamaño de hoja. */
+@page termico {
+    size: 80mm auto;
+    margin: 2mm;
+}
+
+@page carta {
+    size: A4;
+    margin: 12mm;
+}
+
+@media print {
     body { background: #fff !important; }
 
     aside, header, footer, .no-print { display: none !important; }
@@ -393,6 +401,7 @@ td.num {
     main { overflow: visible !important; padding: 0 !important; }
 
     .comprobante {
+        page: termico;
         box-shadow: none !important;
         border: none !important;
         border-radius: 0 !important;
@@ -414,6 +423,26 @@ td.num {
     .comprobante .w-64 { width: auto !important; }
     .comprobante table { font-size: 10px !important; }
     .comprobante th, .comprobante td { padding: 1mm 2mm !important; }
+
+    /* Variante A4 (papel-carta): hoja carta y tipografía estándar. */
+    .comprobante.papel-carta {
+        page: carta;
+        max-width: 180mm !important;
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+    }
+    .comprobante.papel-carta .text-2xl { font-size: 24px !important; }
+    .comprobante.papel-carta .text-xl { font-size: 20px !important; }
+    .comprobante.papel-carta .text-lg { font-size: 18px !important; }
+    .comprobante.papel-carta .text-sm { font-size: 14px !important; }
+    .comprobante.papel-carta .text-xs { font-size: 12px !important; }
+    .comprobante.papel-carta .px-6 { padding-left: 24px !important; padding-right: 24px !important; }
+    .comprobante.papel-carta .py-5, .comprobante.papel-carta .py-4, .comprobante.papel-carta .py-3 { padding-top: 20px !important; padding-bottom: 20px !important; }
+    .comprobante.papel-carta .gap-4 { gap: 16px !important; }
+    .comprobante.papel-carta .w-10 { width: 40px !important; height: 40px !important; }
+    .comprobante.papel-carta .w-64 { width: 256px !important; }
+    .comprobante.papel-carta table { font-size: 13px !important; }
+    .comprobante.papel-carta th, .comprobante.papel-carta td { padding: 8px 24px !important; }
 
     /* Conservar la identidad de marca en papel (cinta de precaución, badges) */
     .comprobante, .comprobante * {
