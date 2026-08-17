@@ -371,3 +371,56 @@ td.num {
     .rise, .rise-1, .rise-2, .rise-3 { animation: none; }
     .btn, .nav-link { transition: none; }
 }
+
+/* Impresión — solo el comprobante: se oculta el chrome de la app
+   (sidebar, cabecera, pie) y cualquier bloque marcado .no-print. El
+   comprobante sale en formato papel térmico 80 mm: página angosta,
+   márgenes mínimos y tipografía compacta, conservando la identidad. */
+@media print {
+    /* Hoja térmica 80 mm — altura automática según el contenido */
+    @page {
+        size: 80mm auto;
+        margin: 2mm;
+    }
+
+    body { background: #fff !important; }
+
+    aside, header, footer, .no-print { display: none !important; }
+
+    /* Desactivar el scroll oculto y las alturas fijas que recortarían el contenido */
+    .h-screen { height: auto !important; overflow: visible !important; }
+    .overflow-hidden { overflow: visible !important; }
+    main { overflow: visible !important; padding: 0 !important; }
+
+    .comprobante {
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        max-width: 76mm !important; /* 80 mm − márgenes de la hoja */
+        margin: 0 auto !important;
+    }
+
+    /* Tipografía compacta para el rollo térmico */
+    .comprobante { font-size: 10px !important; line-height: 1.35 !important; }
+    .comprobante .text-2xl { font-size: 16px !important; }
+    .comprobante .text-xl { font-size: 14px !important; }
+    .comprobante .text-lg { font-size: 13px !important; }
+    .comprobante .text-sm { font-size: 10px !important; }
+    .comprobante .text-xs { font-size: 8.5px !important; }
+    .comprobante .px-6 { padding-left: 2mm !important; padding-right: 2mm !important; }
+    .comprobante .py-5, .comprobante .py-4, .comprobante .py-3 { padding-top: 1.5mm !important; padding-bottom: 1.5mm !important; }
+    .comprobante .gap-4 { gap: 4mm !important; }
+    .comprobante .w-10 { width: 8mm !important; height: 8mm !important; }
+    .comprobante .w-64 { width: auto !important; }
+    .comprobante table { font-size: 10px !important; }
+    .comprobante th, .comprobante td { padding: 1mm 2mm !important; }
+
+    /* Conservar la identidad de marca en papel (cinta de precaución, badges) */
+    .comprobante, .comprobante * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* El enlace del origen se imprime como texto plano, sin subrayado de link */
+    .comprobante a { text-decoration: none; color: inherit; }
+}

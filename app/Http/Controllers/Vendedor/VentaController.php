@@ -75,7 +75,7 @@ class VentaController extends Controller
         }
 
         return redirect()
-            ->route('ventas.show', $venta)
+            ->route('ventas.show', ['venta' => $venta, 'imprimir' => 1])
             ->with('status', "Venta #{$venta->id} registrada correctamente.");
     }
 

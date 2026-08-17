@@ -174,4 +174,52 @@ class VentaTest extends TestCase
         $response->assertSessionHasErrors('items');
         $this->assertDatabaseCount('ventas', 0);
     }
+
+    public function test_al_confirmar_desde_el_pos_se_redirige_con_autoimpresion(): void
+    {
+        $producto = $this->crearProducto(stock: 5);
+
+        $response = $this->actingAs($this->vendedor)->post('/ventas', [
+            'items' => [
+                ['producto_id' => $producto->id, 'cantidad' => 1],
+            ],
+            'pago_monto' => 55.00,
+            'pago_metodo' => 'Efectivo',
+        ]);
+
+        $venta = Venta::latest('id')->first();
+
+        // La redirección lleva el parámetro ?imprimir=1 para imprimir el comprobante.
+        $response->assertRedirect(route('ventas.show', ['venta' => $venta, 'imprimir' => 1]));
+    }
+
+    public function test_el_comprobante_solo_autoimprime_con_el_parametro_imprimir(): void
+    {
+        $producto = $this->crearProducto(stock: 5);
+        $cliente = $this->crearCliente();
+
+        $venta = $this->ventaService()->crearVenta(
+            ['cliente_id' => $cliente->id, 'estado' => 'Pagado'],
+            [['producto_id' => $producto->id, 'cantidad' => 1]],
+            $this->vendedor,
+            ['monto' => 55.00, 'metodo' => 'Efectivo']
+        );
+
+        // Con ?imprimir=1 el script de impresión automática está presente.
+        $this->actingAs($this->vendedor)
+            ->get(route('ventas.show', ['venta' => $venta, 'imprimir' => 1]))
+            ->assertOk()
+            ->assertSee('data-auto-imprimir', false);
+
+        // Sin el parámetro no se dispara la impresión automática.
+        $this->actingAs($this->vendedor)
+            ->get(route('ventas.show', $venta))
+            ->assertOk()
+            ->assertDontSee('data-auto-imprimir', false);
+    }
+
+    private function ventaService(): \App\Services\VentaService
+    {
+        return app(\App\Services\VentaService::class);
+    }
 }

@@ -2,7 +2,7 @@
     <x-slot name="titulo">Venta #{{ $venta->id }}</x-slot>
 
     <div class="max-w-3xl mx-auto">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="comprobante bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <!-- Encabezado tipo comprobante -->
             <div class="px-6 py-5 border-b border-gray-200 flex flex-wrap items-start justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -90,7 +90,7 @@
             </div>
         </div>
 
-        <div class="mt-4 flex items-center justify-between">
+        <div class="mt-4 no-print flex items-center justify-between">
             <a href="{{ route('ventas.index') }}" class="text-sm text-gray-600 hover:text-gray-800 font-medium">← Volver a ventas</a>
             @can('crear ventas')
                 <button onclick="window.print()" class="bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition">Imprimir comprobante</button>
@@ -101,7 +101,7 @@
             @php
                 $detallesVenta = $venta->loadMissing('detalles.producto')->detalles;
             @endphp
-            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="mt-6 no-print bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="font-semibold text-gray-800 text-lg">Registrar devolución</h2>
                 <form method="POST" action="{{ route('devoluciones.store', $venta) }}" class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
                     @csrf
@@ -129,7 +129,7 @@
         @endcan
 
         @if (! in_array($venta->estado, ['Pagado', 'Cancelada']))
-            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="mt-6 no-print bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="font-semibold text-gray-800 text-lg">Cobrar en línea</h2>
                 <p class="text-sm text-gray-500 mt-1">La venta está <strong>Pendiente</strong>. Envía el cobro a través de una pasarela de pago (Fase 2).</p>
 
@@ -159,4 +159,15 @@
             </div>
         @endif
     </div>
+
+    @if (request()->query('imprimir') === '1')
+        {{-- Impresión automática al confirmar desde el Punto de Venta: espera
+             el render del comprobante y usa las mismas reglas de impresión
+             aislada (@media print en app.css). --}}
+        <script data-auto-imprimir>
+            window.addEventListener('load', () => {
+                setTimeout(() => window.print(), 300);
+            });
+        </script>
+    @endif
 </x-app-layout>
