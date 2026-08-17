@@ -175,7 +175,26 @@ class VentaTest extends TestCase
         $this->assertDatabaseCount('ventas', 0);
     }
 
-    public function test_al_confirmar_desde_el_pos_se_redirige_con_autoimpresion(): void
+    public function test_al_confirmar_desde_el_pos_se_redirige_con_autoimpresion_si_esta_marcada(): void
+    {
+        $producto = $this->crearProducto(stock: 5);
+
+        $response = $this->actingAs($this->vendedor)->post('/ventas', [
+            'items' => [
+                ['producto_id' => $producto->id, 'cantidad' => 1],
+            ],
+            'pago_monto' => 55.00,
+            'pago_metodo' => 'Efectivo',
+            'imprimir_comprobante' => '1',
+        ]);
+
+        $venta = Venta::latest('id')->first();
+
+        // La redirección lleva el parámetro ?imprimir=1 para imprimir el comprobante.
+        $response->assertRedirect(route('ventas.show', ['venta' => $venta, 'imprimir' => 1]));
+    }
+
+    public function test_al_confirmar_desde_el_pos_sin_autoimpresion_no_lleva_el_parametro(): void
     {
         $producto = $this->crearProducto(stock: 5);
 
@@ -189,8 +208,72 @@ class VentaTest extends TestCase
 
         $venta = Venta::latest('id')->first();
 
-        // La redirección lleva el parámetro ?imprimir=1 para imprimir el comprobante.
-        $response->assertRedirect(route('ventas.show', ['venta' => $venta, 'imprimir' => 1]));
+        $response->assertRedirect(route('ventas.show', ['venta' => $venta]));
+    }
+
+    public function test_la_preferencia_de_papel_se_guarda_por_usuario(): void
+    {
+        $this->actingAs($this->vendedor)
+            ->postJson('/preferencias/comprobante', ['papel_comprobante' => 'carta'])
+            ->assertOk();
+
+        $this->assertEquals('carta', $this->vendedor->fresh()->pref_papel_comprobante);
+
+        // El comprobante se renderiza con la clase de papel preferida.
+        $producto = $this->crearProducto(stock: 5);
+        $venta = $this->ventaService()->crearVenta(
+            ['estado' => 'Pagado'],
+            [['producto_id' => $producto->id, 'cantidad' => 1]],
+            $this->vendedor,
+            ['monto' => 55.00, 'metodo' => 'Efectivo']
+        );
+
+        $this->actingAs($this->vendedor)
+            ->get(route('ventas.show', $venta))
+            ->assertOk()
+            ->assertSee('papel-carta', false);
+    }
+
+    public function test_la_preferencia_de_autoimpresion_del_pos_se_guarda_por_usuario(): void
+    {
+        $this->actingAs($this->vendedor)
+            ->postJson('/preferencias/comprobante', ['imprimir_pos' => false])
+            ->assertOk();
+
+        $this->assertFalse($this->vendedor->fresh()->pref_imprimir_pos);
+
+        // El checkbox del POS aparece sin marcar con la preferencia guardada.
+        $this->actingAs($this->vendedor)
+            ->get(route('ventas.create'))
+            ->assertOk()
+            ->assertDontSee('id="imprimir_comprobante" checked', false);
+    }
+
+    public function test_imprimir_comprobante_queda_registrado_en_la_auditoria(): void
+    {
+        $producto = $this->crearProducto(stock: 5);
+        $venta = $this->ventaService()->crearVenta(
+            ['estado' => 'Pagado'],
+            [['producto_id' => $producto->id, 'cantidad' => 1]],
+            $this->vendedor,
+            ['monto' => 55.00, 'metodo' => 'Efectivo']
+        );
+
+        \Illuminate\Support\Facades\Log::spy();
+
+        $this->actingAs($this->vendedor)
+            ->post('/ventas/'.$venta->id.'/imprimir?origen=pos')
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+
+        \Illuminate\Support\Facades\Log::shouldHaveReceived('info')
+            ->once()
+            ->withArgs(fn (string $mensaje, array $contexto) =>
+                $mensaje === 'Comprobante impreso'
+                && $contexto['venta_id'] === $venta->id
+                && $contexto['origen'] === 'pos'
+                && $contexto['usuario_id'] === $this->vendedor->id
+            );
     }
 
     public function test_el_comprobante_solo_autoimprime_con_el_parametro_imprimir(): void
