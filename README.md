@@ -82,6 +82,7 @@ El catálogo público permite armar pedidos sin cuenta: el visitante agrega repu
 
 - El vendedor **confirma** el pedido: se revalida el stock actual, se crea o reutiliza el cliente y se genera la venta (descuento atómico de stock). También puede **cancelarlo**.
 - El cliente recibe un **correo con la identidad de marca** en cada cambio de estado: *recibido* (al hacer el pedido), *confirmado* (con el número de venta) y *cancelado*. Solo se envía si dejó un correo, y un fallo de envío nunca rompe el flujo.
+- **Notificaciones en cola (async)**: el correo al cliente y el aviso al taller se **encolan como jobs** (`app/Jobs/NotificarClientePedido` y `app/Jobs/NotificarTallerPedido`) después de registrar el pedido, así el checkout no espera al proveedor de correo ni al webhook. Con `QUEUE_CONNECTION=database` los jobs caen en la tabla `jobs` y se procesan con `php artisan queue:work` (en tests corren en sincronía).
 - **Pago en línea en el checkout**: el cliente elige pagar al recibir o pagar ahora con Stripe/PayPal (modo simulación automático sin claves API). Si pagó, la venta generada al confirmar nace **Pagada con el pago Completado** y la referencia de la pasarela.
 - **Enlace seguro con token en el correo**: cada pedido con correo lleva un token único de 48 caracteres. Desde el correo, el cliente puede **confirmar** (queda priorizado para el taller) o **cancelar** su pedido antes de que el taller lo procese; el token solo funciona mientras el pedido está Pendiente y se compara con `hash_equals`.
 - **Consulta pública de estado** (`/catalogo/consultar`, enlazado en el pie del catálogo y en el correo): con el número de pedido y el teléfono, el cliente ve el estado actual sin estar autenticado (el teléfono valida que la página no se abra con datos ajenos).
@@ -97,6 +98,7 @@ Desde **Productos → Importar CSV** (Admin/Inventario) se puede cargar el catá
 - Archivo CSV con separador `;`, UTF-8 y primera fila de encabezados: `nombre;categoria;precio_unitario;stock;umbral_alerta;costo;descripcion;tipo` (solo las 4 primeras son obligatorias). Se descarga una **plantilla de ejemplo** desde la misma página.
 - **Validación previa**: el archivo se analiza y se muestra una vista previa con el estado de cada fila (lista / error con el motivo) y la **acción prevista** — `Nuevo` si no existe un producto con ese nombre, `Actualizar` si ya hay uno (se actualizan precio, costo, categoría y stock **sin crear duplicados**) — antes de tocar la base de datos.
 - **Importación por lotes**: cada importación genera un **lote** (`IMP-20260817-103129`) que queda embebido en el motivo de todos sus movimientos de stock; el panel de resultado muestra el resumen (creados / actualizados / errores con detalle) y permite **descargar el reporte CSV de movimientos de ese lote** (producto, tipo, cantidad, stock resultante y quién lo registró) para auditar el cambio.
+- **Historial de importaciones** (`Productos → Historial de importaciones`, enlace en el sidebar y en la página de importación): cada ejecución queda registrada en la tabla `importaciones` con su lote, fecha, resumen (creados / actualizados / errores), la persona que la ejecutó y el **botón de descargar reporte** de esa importación — ya no depende de la última ejecución en sesión.
 - La importación crea las categorías que falten, registra el stock inicial como **movimiento de entrada** y los cambios de stock como **ajustes**, y omite las filas con error reportándolas.
 
 ## 🔍 Auditoría con Telescope
@@ -115,10 +117,10 @@ Para auditar la actividad de una persona, abrí Telescope y filtrá por `user:1`
 ## 🧪 Tests
 
 ```bash
-php artisan test   # 117 tests / 435 aserciones (SQLite en memoria, aislado)
+php artisan test   # 122 tests / 460 aserciones (SQLite en memoria, aislado)
 ```
 
-Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **filtros y paginación de la bandeja**, **origen del pedido en el detalle de venta**) e **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos y reporte descargable), historial/notificación de respaldo.
+Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**) e **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), historial/notificación de respaldo.
 
 ## 🔄 CI (GitHub Actions)
 
