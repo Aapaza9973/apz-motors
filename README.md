@@ -13,7 +13,7 @@ Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de
 | **Autenticación** | Breeze en español, verificación de correo, traducciones propias (`lang/es/`), zona horaria `America/La_Paz` |
 | **Roles y permisos** | 5 roles (Admin, Vendedor, Inventario, Soporte, Cliente) con la matriz del Documento Maestro; rutas protegidas por permiso |
 | **Productos y categorías** | CRUD completo, stock, umbral de alerta, trazabilidad de movimientos (entrada, ajuste, venta, devolución) e **importación masiva desde CSV** (validación previa fila por fila + reporte) |
-| **Punto de venta (POS)** | Carrito en vivo, descuento atómico de stock (`lockForUpdate`), comprobante imprimible |
+| **Punto de venta (POS)** | Carrito en vivo, descuento atómico de stock (`lockForUpdate`), comprobante imprimible (térmico 80 mm o A4, autoimpresión opcional recordada por vendedor, impresiones auditadas en Telescope) |
 | **Pagos en línea** | Stripe (Checkout Session + webhook firmado) y PayPal (REST); **modo simulación** automático sin claves API |
 | **Devoluciones** | Solicitud con motivo, aprobación por Admin, reembolso y reposición automática de stock |
 | **Cierre de caja** | Arqueo por vendedor/día: resumen, totales por método de pago, registro del cierre (una vez por día) y **exportación PDF** con identidad corporativa |
@@ -124,12 +124,19 @@ rol:{rol}   →  p. ej. rol:Admin
 
 Para auditar la actividad de una persona, abrí Telescope y filtrá por `user:1` (o por `rol:Vendedor` para ver el grupo): se ven sus logins, consultas, ventas registradas y movimientos de stock en orden cronológico, sin tener que revisar la base de datos.
 
+### Impresión del comprobante
+
+El comprobante de venta se imprime **solo él** (sin el chrome de la app): el botón "Imprimir comprobante" y la autoimpresión del POS registran primero la impresión en Telescope como request (`POST /ventas/{id}/imprimir?origen=pos|manual`) — con los tags `user:{id}` / `rol:{rol}` — y luego abren el diálogo de impresión. Así se puede responder *¿quién imprimió el comprobante de la venta #44 y desde dónde?* filtrando en Telescope por `user:1` y el path `ventas/44/imprimir`.
+
+- **Tamaño de papel por usuario**: cada usuario elige **Térmico 80 mm** (predeterminado, página angosta con tipografía compacta) o **Carta A4** (tipografía estándar) desde el selector junto al botón de imprimir. La preferencia se guarda por usuario (`users.pref_papel_comprobante`) y se aplica al instante.
+- **Autoimpresión opcional en el POS**: el Punto de Venta tiene un checkbox "Imprimir comprobante al confirmar" que se recuerda por vendedor (`users.pref_imprimir_pos`); al confirmar una venta con él activado, el comprobante se imprime automáticamente (redirect con `?imprimir=1`).
+
 ## 🧪 Tests
 ```bash
-php artisan test   # 140 tests / 513 aserciones (SQLite en memoria, aislado)
+php artisan test   # 146 tests / 532 aserciones (SQLite en memoria, aislado)
 ```
 
-Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
+Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente, **autoimpresión condicional del POS**, **preferencias de papel y de autoimpresión por usuario**, **auditoría de impresión del comprobante**), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
 
 ## 🔄 CI (GitHub Actions)
 
