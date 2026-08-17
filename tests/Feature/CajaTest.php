@@ -110,4 +110,31 @@ class CajaTest extends TestCase
         $this->actingAs($cliente)->get('/caja')->assertForbidden();
         $this->actingAs($cliente)->post('/caja/cierre')->assertForbidden();
     }
+
+    public function test_admin_exporta_el_cierre_a_pdf(): void
+    {
+        $admin = $this->usuarioConRol('Admin');
+        $vendedor = $this->usuarioConRol('Vendedor');
+        $this->crearVentaDeHoy($vendedor, 100.00, 'Efectivo');
+        $this->crearVentaDeHoy($vendedor, 45.00, 'Transferencia');
+
+        $this->actingAs($vendedor)->post('/caja/cierre')->assertRedirect();
+        $cierre = CierreCaja::firstOrFail();
+
+        $this->actingAs($admin)->get('/caja/'.$cierre->id.'/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_vendedor_no_exporta_un_cierre_ajeno(): void
+    {
+        $vendedorA = $this->usuarioConRol('Vendedor');
+        $vendedorB = $this->usuarioConRol('Vendedor');
+        $this->crearVentaDeHoy($vendedorA, 50.00);
+
+        $this->actingAs($vendedorA)->post('/caja/cierre')->assertRedirect();
+        $cierre = CierreCaja::firstOrFail();
+
+        $this->actingAs($vendedorB)->get('/caja/'.$cierre->id.'/pdf')->assertForbidden();
+    }
 }

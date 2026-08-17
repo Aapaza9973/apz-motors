@@ -3,13 +3,23 @@
 namespace Tests\Feature;
 
 use App\Console\Commands\BackupDatabase;
+use App\Mail\RespaldoMail;
+use App\Models\User;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class BackupDatabaseTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RoleSeeder::class);
+    }
 
     public function test_modo_pretend_muestra_el_comando_sin_ejecutar(): void
     {
@@ -47,5 +57,61 @@ class BackupDatabaseTest extends TestCase
 
         $this->assertSame(0, $eliminados);
         Storage::disk('local')->assertExists('backups/nota.txt');
+    }
+
+    public function test_respaldo_exitoso_registra_historial_y_notifica_al_admin(): void
+    {
+        Mail::fake();
+        $admin = User::factory()->create(['email' => 'admin@prueba.com'])->assignRole('Admin');
+
+        $comando = new BackupDatabase();
+        $comando->registrarYNotificar(true, 'backups/db-apz-2026-08-17-100000.sql.gz', 41984, null);
+
+        $this->assertDatabaseHas('respaldos', [
+            'estado' => 'exitoso',
+            'archivo' => 'backups/db-apz-2026-08-17-100000.sql.gz',
+            'tamano_bytes' => 41984,
+        ]);
+
+        // El destinatario por defecto es el primer usuario Admin del sistema
+        // (el sembrado por RoleSeeder), salvo que exista BACKUP_NOTIFY_EMAIL.
+        Mail::assertSent(RespaldoMail::class, fn (RespaldoMail $mail) => $mail->hasTo('admin@apzmotors.com'));
+    }
+
+    public function test_respaldo_fallido_registra_historial_con_mensaje_y_notifica(): void
+    {
+        Mail::fake();
+
+        $comando = new BackupDatabase();
+        $comando->registrarYNotificar(false, null, null, 'mysqldump: no se encontró el comando.');
+
+        $this->assertDatabaseHas('respaldos', [
+            'estado' => 'fallido',
+            'mensaje' => 'mysqldump: no se encontró el comando.',
+        ]);
+
+        Mail::assertSent(RespaldoMail::class, fn (RespaldoMail $mail) => $mail->hasTo('admin@apzmotors.com'));
+    }
+
+    public function test_backup_notify_email_gana_sobre_el_admin_sembrado(): void
+    {
+        Mail::fake();
+        config(['database.backup.notify_email' => 'sysadmin@apzmotors.com']);
+
+        $comando = new BackupDatabase();
+        $comando->registrarYNotificar(true, 'backups/db.sql.gz', 100, null);
+
+        Mail::assertSent(RespaldoMail::class, fn (RespaldoMail $mail) => $mail->hasTo('sysadmin@apzmotors.com'));
+    }
+
+    public function test_solo_admin_accede_al_historial_de_respaldos(): void
+    {
+        $vendedor = User::factory()->create()->assignRole('Vendedor');
+        $this->actingAs($vendedor)->get('/respaldos')->assertForbidden();
+
+        $admin = User::factory()->create(['name' => 'Admin de prueba'])->assignRole('Admin');
+        $this->actingAs($admin)->get('/respaldos')
+            ->assertOk()
+            ->assertSee('Respaldos de base de datos');
     }
 }
