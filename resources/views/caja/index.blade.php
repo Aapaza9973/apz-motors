@@ -29,6 +29,7 @@
                         <th class="px-5 py-3 text-right">Transferencia</th>
                         <th class="px-5 py-3 text-right">En línea</th>
                         <th class="px-5 py-3">Observación</th>
+                        <th class="px-5 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -43,10 +44,16 @@
                             <td class="px-5 py-3 text-right font-mono text-gray-700">Bs {{ number_format($cierre->total_transferencia, 2) }}</td>
                             <td class="px-5 py-3 text-right font-mono text-gray-700">Bs {{ number_format($cierre->total_stripe + $cierre->total_paypal, 2) }}</td>
                             <td class="px-5 py-3 text-gray-500 max-w-[180px] truncate">{{ $cierre->observacion ?: '—' }}</td>
+                            <td class="px-5 py-3 text-right">
+                                <a href="{{ route('caja.pdf', $cierre) }}" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-orange-600 transition" title="Exportar cierre a PDF">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                                    PDF
+                                </a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-5 py-4">
+                            <td colspan="10" class="px-5 py-4">
                                 <x-empty-state
                                     titulo="Sin cierres registrados"
                                     mensaje="Cuando un vendedor cierre su turno, el arqueo del día aparecerá acá con el detalle por método de pago."

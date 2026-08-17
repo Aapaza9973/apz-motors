@@ -5,9 +5,12 @@ use App\Http\Controllers\Admin\ProductoController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AlertaController;
+use App\Http\Controllers\Admin\RespaldoController;
+use App\Http\Controllers\CarritoController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DevolucionController;
+use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Vendedor\CajaController;
@@ -94,6 +97,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/caja/cierre', [CajaController::class, 'create'])->name('caja.create');
         Route::post('/caja/cierre', [CajaController::class, 'store'])->name('caja.store');
     });
+    Route::middleware('can:ver cierres de caja')->get('/caja/{cierre}/pdf', [CajaController::class, 'exportarPdf'])->name('caja.pdf');
 
     // ---- Reportes (matriz: Admin R · Vendedor R limitado · Inventario R inventario) ----
     Route::middleware('can:ver reportes')->group(function () {
@@ -104,6 +108,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reportes/inventario/exportar/pdf', [ReporteController::class, 'exportarPdfInventario'])->name('reportes.inventario.pdf');
         Route::get('/reportes/inventario/exportar/csv', [ReporteController::class, 'exportarCsvInventario'])->name('reportes.inventario.csv');
     });
+
+    // ---- Pedidos en línea (bandeja interna: Admin ver/confirmar · Vendedor ver/confirmar) ----
+    Route::middleware('can:ver pedidos')->group(function () {
+        Route::get('/pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
+        Route::get('/pedidos/{pedido}', [PedidoController::class, 'show'])->name('pedidos.show');
+    });
+    Route::middleware('can:confirmar pedidos')->group(function () {
+        Route::post('/pedidos/{pedido}/confirmar', [PedidoController::class, 'confirmar'])->name('pedidos.confirmar');
+        Route::post('/pedidos/{pedido}/cancelar', [PedidoController::class, 'cancelar'])->name('pedidos.cancelar');
+    });
+
+    // ---- Respaldos de base de datos (historial consultable, solo Admin) ----
+    Route::middleware('can:ver respaldos')->get('/respaldos', [RespaldoController::class, 'index'])->name('respaldos.index');
 
     // ---- Usuarios y roles (solo Admin) ----
     Route::middleware('can:ver usuarios')->get('/usuarios', [UserController::class, 'index'])->name('usuarios.index');
@@ -123,8 +140,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Catálogo público de repuestos (sin autenticación).
+// Catálogo público de repuestos y pedidos en línea (sin autenticación).
 Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
+Route::post('/catalogo/carrito/agregar', [CarritoController::class, 'agregar'])->name('carrito.agregar');
+Route::get('/catalogo/carrito', [CarritoController::class, 'ver'])->name('carrito.ver');
+Route::post('/catalogo/carrito/actualizar', [CarritoController::class, 'actualizar'])->name('carrito.actualizar');
+Route::post('/catalogo/carrito/eliminar', [CarritoController::class, 'eliminar'])->name('carrito.eliminar');
+Route::get('/catalogo/checkout', [PedidoController::class, 'checkout'])->name('pedidos.checkout');
+Route::post('/catalogo/pedidos', [PedidoController::class, 'store'])->name('pedidos.store');
+Route::get('/catalogo/pedidos/{pedido}', [PedidoController::class, 'confirmacion'])->name('pedidos.confirmacion');
+Route::get('/catalogo/consultar', [PedidoController::class, 'consultarForm'])->name('pedidos.consultar');
+Route::post('/catalogo/consultar', [PedidoController::class, 'consultar'])->name('pedidos.consultar-enviar');
+Route::get('/catalogo/pedidos/{pedido}/estado', [PedidoController::class, 'estado'])->name('pedidos.estado');
 
 // Webhook de Stripe (sin CSRF ni autenticación: lo firma la propia pasarela).
 Route::post('/webhooks/stripe', [PagoController::class, 'webhookStripe'])

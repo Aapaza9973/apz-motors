@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Vendedor;
 use App\Http\Controllers\Controller;
 use App\Models\CierreCaja;
 use App\Services\CajaService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CajaController extends Controller
@@ -55,5 +58,23 @@ class CajaController extends Controller
         return redirect()
             ->route('caja.index')
             ->with('status', "Cierre de caja registrado: {$cierre->cantidad_ventas} venta(s) por Bs ".number_format($cierre->total_ventas, 2).'.');
+    }
+
+    /**
+     * Exporta el cierre de caja a PDF con la identidad corporativa:
+     * logotipo, cinta de precaución y desglose por método de pago.
+     * El vendedor solo exporta sus propios cierres.
+     */
+    public function exportarPdf(Request $request, CierreCaja $cierre): Response
+    {
+        if (! Gate::allows('ver todos los cierres') && $cierre->user_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        $pdf = Pdf::loadView('caja.pdf', [
+            'cierre' => $cierre->load('usuario'),
+        ])->setPaper('a4');
+
+        return $pdf->download('cierre-caja-'.$cierre->fecha_cierre->format('Y-m-d').'-'.Str::slug($cierre->usuario->name).'.pdf');
     }
 }

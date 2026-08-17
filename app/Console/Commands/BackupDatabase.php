@@ -2,10 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\RespaldoMail;
+use App\Models\Respaldo;
+use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 
@@ -28,6 +32,7 @@ class BackupDatabase extends Command
         $mysqldump = config('database.backup.mysqldump_path', env('BACKUP_MYSQLDUMP_PATH', 'mysqldump'));
 
         if (blank($database)) {
+            $this->registrarYNotificar(false, null, null, 'No se pudo determinar el nombre de la base de datos.');
             $this->error('No se pudo determinar el nombre de la base de datos.');
 
             return self::FAILURE;
@@ -59,17 +64,28 @@ class BackupDatabase extends Command
             return self::SUCCESS;
         }
 
+        $archivo = null;
+        $tamanoBytes = null;
+        $mensaje = null;
+
         try {
             $process = new Process($dump);
             $process->setTimeout(300)->mustRun();
 
-            $contenido = $process->getOutput();
-            $comprimido = gzencode($contenido, 6);
+            $comprimido = gzencode($process->getOutput(), 6);
 
             $disk->put($ruta, $comprimido);
+            $archivo = $ruta;
+            $tamanoBytes = strlen($comprimido);
         } catch (\Throwable $e) {
-            Log::error('Backup de base de datos fallido.', ['error' => $e->getMessage()]);
-            $this->error('El respaldo falló: '.$e->getMessage());
+            $mensaje = $e->getMessage();
+        }
+
+        $this->registrarYNotificar($mensaje === null, $archivo, $tamanoBytes, $mensaje);
+
+        if ($mensaje !== null) {
+            Log::error('Backup de base de datos fallido.', ['error' => $mensaje]);
+            $this->error('El respaldo falló: '.$mensaje);
 
             return self::FAILURE;
         }
@@ -80,6 +96,56 @@ class BackupDatabase extends Command
         $this->info("Respaldo completado — historial conservado: {$this->option('keep')} días ({$eliminados} archivo(s) purgado(s)).");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Registra el resultado del respaldo en el historial consultable
+     * (tabla `respaldos`) y notifica por correo al administrador.
+     * Los fallos de correo nunca rompen el comando de respaldo.
+     */
+    public function registrarYNotificar(bool $exitoso, ?string $archivo, ?int $tamanoBytes, ?string $mensaje): void
+    {
+        Respaldo::create([
+            'archivo' => $archivo,
+            'tamano_bytes' => $tamanoBytes,
+            'estado' => $exitoso ? 'exitoso' : 'fallido',
+            'mensaje' => $mensaje,
+            'ejecutado_en' => now(),
+        ]);
+
+        $destinatario = $this->destinatarioAdmin();
+
+        if ($destinatario === null) {
+            Log::warning('Backup: no hay administrador ni BACKUP_NOTIFY_EMAIL para notificar.', [
+                'resultado' => $exitoso ? 'exitoso' : 'fallido',
+            ]);
+
+            return;
+        }
+
+        try {
+            Mail::to($destinatario)->send(new RespaldoMail(
+                estado: $exitoso ? 'exitoso' : 'fallido',
+                archivo: $archivo,
+                tamanoBytes: $tamanoBytes,
+                mensaje: $mensaje,
+            ));
+        } catch (\Throwable $e) {
+            Log::error('Backup: no se pudo enviar el correo de notificación.', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Destinatario de la notificación: `BACKUP_NOTIFY_EMAIL` o, en su
+     * defecto, el correo del primer usuario con rol Admin.
+     */
+    private function destinatarioAdmin(): ?string
+    {
+        if ($email = config('database.backup.notify_email')) {
+            return $email;
+        }
+
+        return User::role('Admin')->first()?->email;
     }
 
     /**

@@ -77,9 +77,22 @@
                             <h2 class="font-display text-[15px] font-bold text-gray-900 leading-snug">{{ $producto->nombre }}</h2>
                             <p class="mt-1.5 text-xs text-gray-500 line-clamp-2">{{ $producto->descripcion ?: 'Sin descripción.' }}</p>
                         </div>
-                        <div class="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-                            <p class="num text-lg font-bold text-gray-900">Bs {{ number_format($producto->precio_unitario, 2) }}</p>
-                            <p class="text-[10px] font-mono text-gray-400 uppercase tracking-wide">Ref. #{{ $producto->id }}</p>
+                        <div class="px-5 py-4 border-t border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <p class="num text-lg font-bold text-gray-900">Bs {{ number_format($producto->precio_unitario, 2) }}</p>
+                                <p class="text-[10px] font-mono text-gray-400 uppercase tracking-wide">Ref. #{{ $producto->id }}</p>
+                            </div>
+                            @if ($producto->stock > 0)
+                                <form method="POST" action="{{ route('carrito.agregar') }}" class="mt-3 flex items-center gap-2">
+                                    @csrf
+                                    <input type="hidden" name="producto_id" value="{{ $producto->id }}">
+                                    <input type="number" name="cantidad" value="1" min="1" max="{{ min(99, $producto->stock) }}"
+                                        class="w-16 rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm text-center">
+                                    <button type="submit" class="btn-flame flex-1 justify-center text-xs">Agregar al carrito</button>
+                                </form>
+                            @else
+                                <p class="mt-3 text-xs font-medium text-red-600">Agotado — consultá la reposición en el taller.</p>
+                            @endif
                         </div>
                         <div class="hazard h-1"></div>
                     </div>
