@@ -1,0 +1,373 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ════════════════════════════════════════════════════════════════════
+   APZ Motor's — Sistema de diseño "Taller"
+   Identidad: llama naranja (#f54505) + carbon (#18191c) sobre plancha
+   de metal clara. Datos en mono (fichas de catálogo de repuestos).
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+    --flame: #f54505;            /* marca: llama APZ */
+    --ember: #c83802;            /* flame hover/pressed */
+    --carbon: #18191c;           /* carril, superficies oscuras */
+    --carbon-2: #26272b;         /* carbon hover */
+    --plate: #ffffff;            /* tarjetas */
+    --deck: #eceff1;             /* lienzo (metal claro) */
+    --line: #dfe3e7;             /* bordes */
+    --line-soft: #eceff1;
+    --steel: #4d5157;            /* texto secundario */
+    --ink: #181a1d;              /* texto primario */
+    --caution: #ffb800;          /* amarillo precaución (cinta) */
+    --safety: #16794b;           /* ok / pagado */
+    --alarm: #d92d20;            /* peligro / bajo stock */
+    --safety-tint: #e6f4ed;
+    --alarm-tint: #fdeeea;
+    --caution-tint: #fff3d1;
+    --font-display: 'Chakra Petch', 'Segoe UI', sans-serif;
+    --font-body: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+}
+
+@layer base {
+    body {
+        font-family: var(--font-body);
+        color: var(--ink);
+        background-color: var(--deck);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection {
+        background-color: var(--flame);
+        color: #fff;
+    }
+}
+
+/* ── Utilidades Tailwind remapeadas a los tokens de marca ───────────
+   La cascada garantiza que todas las vistas hereden el sistema sin
+   reescribir cada archivo. */
+
+.font-sans { font-family: var(--font-body); }
+.font-mono { font-family: var(--font-mono); }
+.font-display { font-family: var(--font-display); }
+
+/* text */
+.text-gray-900 { color: var(--ink); }
+.text-gray-800 { color: var(--ink); }
+.text-gray-700 { color: #33363b; }
+.text-gray-600 { color: var(--steel); }
+.text-gray-500 { color: #6b7076; }
+.text-gray-400 { color: #8b9097; }
+.text-gray-300 { color: #a8adb4; }
+.text-gray-200 { color: #c2c7cd; }
+.text-orange-600 { color: var(--flame); }
+.text-orange-700 { color: var(--ember); }
+.text-orange-500 { color: var(--ember); }
+.text-green-700 { color: var(--safety); }
+.text-green-600 { color: var(--safety); }
+.text-red-700 { color: var(--alarm); }
+.text-red-600 { color: var(--alarm); }
+.text-yellow-700 { color: #7a5b00; }
+.text-indigo-600 { color: var(--flame); }
+
+/* backgrounds */
+.bg-gray-900 { background-color: var(--carbon); }
+.bg-gray-800 { background-color: var(--carbon); }
+.hover\:bg-gray-800:hover { background-color: var(--carbon-2); }
+.bg-gray-700 { background-color: #000; }
+.hover\:bg-gray-700:hover { background-color: #101114; }
+.bg-gray-100 { background-color: var(--deck); }
+.bg-gray-50 { background-color: #f6f8f9; }
+.bg-gray-200 { background-color: #e9ecef; }
+.bg-orange-600 { background-color: var(--flame); }
+.hover\:bg-orange-700:hover { background-color: var(--ember); }
+.bg-orange-700 { background-color: var(--ember); }
+.hover\:bg-orange-600:hover { background-color: var(--ember); }
+.bg-orange-50 { background-color: #fdf1ec; }
+.bg-orange-100 { background-color: #fde3d7; }
+.bg-green-100 { background-color: var(--safety-tint); }
+.bg-green-600 { background-color: var(--safety); }
+.hover\:bg-green-700:hover { background-color: #125f38; }
+.bg-green-700 { background-color: #125f38; }
+.bg-red-100 { background-color: var(--alarm-tint); }
+.bg-red-600 { background-color: var(--alarm); }
+.hover\:bg-red-700:hover { background-color: #b4231a; }
+.bg-red-700 { background-color: #b4231a; }
+.bg-red-50 { background-color: var(--alarm-tint); }
+.bg-red-50\/60 { background-color: color-mix(in srgb, var(--alarm-tint) 60%, transparent); }
+.bg-yellow-100 { background-color: var(--caution-tint); }
+
+/* borders */
+.border-gray-200 { border-color: var(--line); }
+.border-gray-300 { border-color: #cfd5da; }
+.border-gray-100 { border-color: var(--line-soft); }
+.border-gray-800 { border-color: var(--carbon); }
+.border-orange-500 { border-color: var(--flame); }
+.border-indigo-700 { border-color: var(--flame); }
+.border-indigo-400 { border-color: var(--flame); }
+
+/* focus rings */
+.focus\:border-orange-500:focus { border-color: var(--flame); }
+.focus\:ring-orange-500:focus { --tw-ring-color: var(--flame); }
+.focus\:ring-indigo-500:focus { --tw-ring-color: var(--flame); }
+.focus\:ring-orange-500 { --tw-ring-color: var(--flame); }
+
+/* sombras: aplanadas, como planchas de metal */
+.shadow-sm { box-shadow: 0 1px 2px rgba(24, 25, 28, 0.05); }
+
+/* ── Componentes ──────────────────────────────────────────────────── */
+
+.card {
+    background-color: var(--plate);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(24, 25, 28, 0.05);
+}
+
+.eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--steel);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    background-color: var(--flame);
+    color: #fff;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.btn:hover { background-color: var(--ember); }
+.btn:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.btn:active { transform: translateY(1px); }
+
+.btn-dark { background-color: var(--carbon); }
+.btn-dark:hover { background-color: var(--carbon-2); }
+
+.btn-ghost {
+    background-color: transparent;
+    color: var(--steel);
+    border: 1px solid var(--line);
+}
+.btn-ghost:hover { background-color: var(--deck); color: var(--ink); }
+
+.btn-danger { background-color: var(--alarm); }
+.btn-danger:hover { background-color: #b4231a; }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.16rem 0.6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.badge-ok { background-color: var(--safety-tint); color: var(--safety); }
+.badge-alarm { background-color: var(--alarm-tint); color: var(--alarm); }
+.badge-warn { background-color: var(--caution-tint); color: #7a5b00; }
+.badge-muted { background-color: #eef0f2; color: var(--steel); }
+.badge-flame { background-color: #fde3d7; color: var(--ember); }
+
+/* Cinta de precaución — firma del sistema (taller) */
+.hazard {
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--carbon) 0 7px,
+        var(--flame) 7px 14px
+    );
+}
+.hazard-caution {
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--carbon) 0 7px,
+        var(--caution) 7px 14px
+    );
+}
+
+.link { color: var(--flame); font-weight: 600; }
+.link:hover { color: var(--ember); }
+
+.input {
+    border-radius: 8px;
+    border: 1px solid #cfd5da;
+    background-color: var(--plate);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--ink);
+    box-shadow: none;
+}
+.input:focus {
+    outline: none;
+    border-color: var(--flame);
+    box-shadow: 0 0 0 3px rgba(245, 69, 5, 0.14);
+}
+
+/* Números de dato: precios, stock, códigos → mono */
+.num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+/* Tablas: encabezados de ficha técnica */
+.tbl th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--steel);
+}
+
+/* Celdas numericas de tabla */
+.tbl td.num,
+td.num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Navegación del carril */
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: #b9bec5;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.nav-link:hover { background-color: rgba(255, 255, 255, 0.06); color: #fff; }
+.nav-link.nav-active {
+    background-color: var(--flame);
+    color: #fff;
+    box-shadow: 0 0 0 1px var(--ember) inset;
+}
+.nav-link.nav-active svg { color: #fff; }
+
+/* KPI — ficha de instrumento */
+.kpi {
+    position: relative;
+    background-color: var(--plate);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.9rem 1rem 0.9rem 1.15rem;
+    overflow: hidden;
+}
+.kpi::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: var(--flame);
+}
+.kpi .kpi-value {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+.kpi .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--steel);
+}
+
+/* Entrada del hero (tablero del día) */
+.hero {
+    position: relative;
+    background-color: var(--carbon);
+    border-radius: 14px;
+    color: #fff;
+    overflow: hidden;
+}
+.hero::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: repeating-linear-gradient(
+        -45deg,
+        var(--carbon) 0 7px,
+        var(--flame) 7px 14px
+    );
+}
+.hero .hero-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8b9097;
+}
+.hero .hero-value {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+/* Banner de marca como fondo — scrim carbon sobre la imagen para
+   garantizar contraste de texto (WCAG 4.5:1) sobre la placa clara. */
+.hero-banner {
+    background-image:
+        linear-gradient(90deg, rgba(24, 25, 28, 0.92) 0%, rgba(24, 25, 28, 0.55) 55%, rgba(24, 25, 28, 0.8) 100%),
+        url('/images/banner.png');
+    background-size: cover;
+    background-position: center;
+}
+
+.login-banner {
+    background-color: var(--carbon);
+    background-image:
+        linear-gradient(180deg, rgba(24, 25, 28, 0.15) 0%, rgba(24, 25, 28, 0.6) 100%),
+        url('/images/banner.png');
+    background-repeat: no-repeat;
+    /* Aspecto nativo del banner: ancho completo del panel, sin recortar la marca */
+    background-position: center 38%;
+    background-size: 100% auto;
+}
+
+/* Movimiento: discreto y respetuoso con reduced-motion */
+@keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 0.4s ease both; }
+.rise-1 { animation-delay: 0.04s; }
+.rise-2 { animation-delay: 0.08s; }
+.rise-3 { animation-delay: 0.12s; }
+
+@media (prefers-reduced-motion: reduce) {
+    .rise, .rise-1, .rise-2, .rise-3 { animation: none; }
+    .btn, .nav-link { transition: none; }
+}
