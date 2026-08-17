@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\NotificarClientePedido;
+use App\Jobs\NotificarTallerPedido;
 use App\Mail\PedidoMail;
 use App\Models\Categoria;
 use App\Models\Cliente;
@@ -14,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PedidoTest extends TestCase
@@ -182,6 +185,51 @@ class PedidoTest extends TestCase
         $this->assertSame('Cancelado', $pedido->fresh()->estado);
         $this->assertCount(0, Venta::all());
         $this->assertSame(10, $producto->fresh()->stock); // sin descuento
+    }
+
+    public function test_las_notificaciones_del_pedido_van_a_la_cola(): void
+    {
+        Queue::fake();
+        $producto = $this->crearProducto();
+
+        $this->post('/catalogo/carrito/agregar', ['producto_id' => $producto->id, 'cantidad' => 1]);
+        $this->post('/catalogo/pedidos', [
+            'nombre_cliente' => 'Cola de Trabajo',
+            'telefono' => '71234567',
+            'email' => 'cola@example.com',
+            'metodo_pago' => 'Efectivo',
+        ]);
+
+        $pedido = Pedido::firstOrFail();
+
+        // El checkout no espera al correo ni al aviso: los encola y sigue.
+        Queue::assertPushed(NotificarClientePedido::class, fn (NotificarClientePedido $job) => $job->pedidoId === $pedido->id
+            && $job->estado === 'recibido');
+        Queue::assertPushed(NotificarTallerPedido::class, fn (NotificarTallerPedido $job) => $job->pedidoId === $pedido->id);
+    }
+
+    public function test_confirmar_pedido_encola_el_correo_de_confirmado(): void
+    {
+        Queue::fake();
+        $producto = $this->crearProducto();
+
+        $this->post('/catalogo/carrito/agregar', ['producto_id' => $producto->id, 'cantidad' => 1]);
+        $this->post('/catalogo/pedidos', [
+            'nombre_cliente' => 'Confirmo en Cola',
+            'telefono' => '71234567',
+            'email' => 'confirma-cola@example.com',
+            'metodo_pago' => 'Efectivo',
+        ]);
+
+        $pedido = Pedido::firstOrFail();
+        $vendedor = User::factory()->create()->assignRole('Vendedor');
+        $this->actingAs($vendedor)->post('/pedidos/'.$pedido->id.'/confirmar')->assertRedirect();
+
+        $ventaId = $pedido->fresh()->venta_id;
+
+        Queue::assertPushed(NotificarClientePedido::class, fn (NotificarClientePedido $job) => $job->pedidoId === $pedido->id
+            && $job->estado === 'confirmado'
+            && $job->ventaId === $ventaId);
     }
 
     public function test_al_hacer_pedido_se_envia_correo_de_recibido(): void
@@ -649,6 +697,45 @@ class PedidoTest extends TestCase
             ->assertOk()
             ->assertSee('Cliente Pagado C')
             ->assertDontSee('Cliente Pagado B');
+    }
+
+    public function test_la_paginacion_de_la_bandeja_mantiene_los_filtros_de_estado_y_pago(): void
+    {
+        // 17 pedidos Pendiente y pagados en línea: página 1 tiene 15, página 2 tiene 2.
+        // created_at se fuerza con forceFill porque no está en $fillable del modelo.
+        for ($i = 1; $i <= 17; $i++) {
+            $pedido = Pedido::create([
+                'nombre_cliente' => "Pagado {$i}",
+                'telefono' => '71234567',
+                'total' => 45.00,
+                'estado' => 'Pendiente',
+                'metodo_pago' => 'Stripe',
+                'estado_pago' => 'Pagado',
+            ]);
+            $pedido->forceFill(['created_at' => now()->subMinutes($i)])->save();
+        }
+
+        $vendedor = User::factory()->create()->assignRole('Vendedor');
+
+        // Página 1 con ambos filtros: los 15 más recientes y el enlace
+        // "Siguiente" conserva estado + pago en la URL.
+        $this->actingAs($vendedor)->get('/pedidos?estado=Pendiente&estado_pago=Pagado')
+            ->assertOk()
+            ->assertSee('Pagado 1')
+            ->assertSee('Pagado 15')
+            ->assertDontSee('Pagado 16')
+            ->assertDontSee('Pagado 17')
+            ->assertSee('Siguiente')
+            ->assertSee('estado=Pendiente&amp;estado_pago=Pagado&amp;page=2', false);
+
+        // Página 2: el enlace "Anterior" también mantiene ambos filtros.
+        $this->actingAs($vendedor)->get('/pedidos?estado=Pendiente&estado_pago=Pagado&page=2')
+            ->assertOk()
+            ->assertSee('Pagado 16')
+            ->assertSee('Pagado 17')
+            ->assertDontSee('Pagado 15')
+            ->assertSee('Anterior')
+            ->assertSee('estado=Pendiente&amp;estado_pago=Pagado&amp;page=1', false);
     }
 
     // ---------- Detalle de venta con origen del pedido en línea ----------

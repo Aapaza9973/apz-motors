@@ -196,6 +196,42 @@ class ImportacionProductosTest extends TestCase
         $this->actingAs($vendedor)->get('/productos/importar/movimientos/IMP-20260817-120000')->assertForbidden();
     }
 
+    public function test_historial_guarda_lote_resumen_y_usuario(): void
+    {
+        $admin = User::factory()->create(['name' => 'Jefa de Inventario'])->assignRole('Admin');
+
+        $filas = [
+            ['numero' => 2, 'datos' => ['nombre' => 'Bujía NGK', 'categoria' => 'Encendido', 'precio_unitario' => '25.00', 'stock' => '15', 'umbral_alerta' => '3', 'costo' => '12.00', 'descripcion' => null, 'tipo' => 'Repuesto'], 'errores' => []],
+            ['numero' => 3, 'datos' => ['nombre' => 'Fila rota', 'categoria' => 'X', 'precio_unitario' => '', 'stock' => '1', 'umbral_alerta' => '0', 'costo' => null, 'descripcion' => null, 'tipo' => null], 'errores' => ['precio inválido (mayor a 0)']],
+        ];
+
+        $resumen = app(ImportacionProductosService::class)->importar($filas, $admin);
+
+        $this->assertDatabaseHas('importaciones', [
+            'lote' => $resumen['lote'],
+            'creados' => 1,
+            'actualizados' => 0,
+            'errores' => 1,
+            'total_filas' => 2,
+            'user_id' => $admin->id,
+        ]);
+
+        // La página de historial muestra el lote, el resumen y el botón de reporte.
+        $this->actingAs($admin)->get('/productos/importar/historial')
+            ->assertOk()
+            ->assertSee($resumen['lote'])
+            ->assertSee('Jefa de Inventario')
+            ->assertSee('Descargar reporte');
+    }
+
+    public function test_historial_requiere_permiso_y_exige_autenticacion(): void
+    {
+        $this->get('/productos/importar/historial')->assertRedirect('/login');
+
+        $vendedor = User::factory()->create()->assignRole('Vendedor');
+        $this->actingAs($vendedor)->get('/productos/importar/historial')->assertForbidden();
+    }
+
     public function test_vista_previa_distingue_actualizar_de_crear(): void
     {
         $admin = User::factory()->create()->assignRole('Admin');
