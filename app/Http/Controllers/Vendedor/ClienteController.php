@@ -12,6 +12,7 @@ use Illuminate\View\View;
 class ClienteController extends Controller
 {
     public function __construct(private PuntosService $puntosService) {}
+
     public function index(Request $request): View
     {
         $query = Cliente::query();

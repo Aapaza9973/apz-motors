@@ -237,7 +237,7 @@ class PaymentService
             ->json();
 
         if (($respuesta['status'] ?? null) !== 'COMPLETED') {
-            throw new \RuntimeException("PayPal no completó la captura (estado: ".($respuesta['status'] ?? 'desconocido').').');
+            throw new \RuntimeException('PayPal no completó la captura (estado: '.($respuesta['status'] ?? 'desconocido').').');
         }
     }
 

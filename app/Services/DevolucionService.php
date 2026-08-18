@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Devolucion;
 use App\Models\User;
 use App\Models\Venta;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class DevolucionService
@@ -77,7 +78,7 @@ class DevolucionService
             : round($detalle->precio_unitario * $devolucion->cantidad, 2);
 
         // Repone el stock dentro de la misma transacción.
-        \Illuminate\Support\Facades\DB::transaction(function () use ($devolucion, $monto) {
+        DB::transaction(function () use ($devolucion, $monto) {
             $this->inventory->ajustarStock(
                 $devolucion->producto,
                 $devolucion->cantidad,

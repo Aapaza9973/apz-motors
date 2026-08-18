@@ -2,9 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Categoria;
 use App\Models\CierreCaja;
-use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
 use Database\Seeders\RoleSeeder;

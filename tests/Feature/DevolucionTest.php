@@ -19,8 +19,11 @@ class DevolucionTest extends TestCase
     use RefreshDatabase;
 
     private User $vendedor;
+
     private User $admin;
+
     private Venta $venta;
+
     private Producto $producto;
 
     protected function setUp(): void

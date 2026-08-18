@@ -9,8 +9,10 @@ use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
+use App\Services\VentaService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class VentaTest extends TestCase
@@ -259,17 +261,16 @@ class VentaTest extends TestCase
             ['monto' => 55.00, 'metodo' => 'Efectivo']
         );
 
-        \Illuminate\Support\Facades\Log::spy();
+        Log::spy();
 
         $this->actingAs($this->vendedor)
             ->post('/ventas/'.$venta->id.'/imprimir?origen=pos')
             ->assertOk()
             ->assertJson(['ok' => true]);
 
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('info')
+        Log::shouldHaveReceived('info')
             ->once()
-            ->withArgs(fn (string $mensaje, array $contexto) =>
-                $mensaje === 'Comprobante impreso'
+            ->withArgs(fn (string $mensaje, array $contexto) => $mensaje === 'Comprobante impreso'
                 && $contexto['venta_id'] === $venta->id
                 && $contexto['origen'] === 'pos'
                 && $contexto['usuario_id'] === $this->vendedor->id
@@ -301,8 +302,8 @@ class VentaTest extends TestCase
             ->assertDontSee('data-auto-imprimir', false);
     }
 
-    private function ventaService(): \App\Services\VentaService
+    private function ventaService(): VentaService
     {
-        return app(\App\Services\VentaService::class);
+        return app(VentaService::class);
     }
 }

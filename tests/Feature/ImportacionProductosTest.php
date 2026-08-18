@@ -9,6 +9,7 @@ use App\Services\ImportacionProductosService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class ImportacionProductosTest extends TestCase
@@ -51,7 +52,7 @@ class ImportacionProductosTest extends TestCase
 
     public function test_analizar_rechaza_archivo_sin_encabezados(): void
     {
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         app(ImportacionProductosService::class)->analizar("Filtro;Motor;45;10\nOtro;X;10;1");
     }

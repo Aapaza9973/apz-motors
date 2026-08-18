@@ -18,6 +18,7 @@ class PaymentTest extends TestCase
     use RefreshDatabase;
 
     private User $vendedor;
+
     private Venta $venta;
 
     protected function setUp(): void

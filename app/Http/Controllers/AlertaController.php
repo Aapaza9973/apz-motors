@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\AlertaStock;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AlertaController extends Controller

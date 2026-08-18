@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -14,5 +15,5 @@ Schedule::command('backup:database')
     ->dailyAt('02:00')
     ->timezone('America/La_Paz')
     ->onFailure(function () {
-        \Illuminate\Support\Facades\Log::error('La tarea programada backup:database falló.');
+        Log::error('La tarea programada backup:database falló.');
     });

@@ -6,8 +6,8 @@ use App\Models\Venta;
 use App\Services\PaymentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\StripeClient;
 
 class PagoController extends Controller
@@ -113,7 +113,7 @@ class PagoController extends Controller
             );
 
             return response()->json(['status' => 'ok']);
-        } catch (\Stripe\Exception\SignatureVerificationException $e) {
+        } catch (SignatureVerificationException $e) {
             return response()->json(['error' => 'Firma inválida'], 400);
         } catch (\Throwable $e) {
             report($e);
