@@ -146,10 +146,13 @@ class PedidoController extends Controller
     public function consultar(Request $request): RedirectResponse
     {
         $datos = $request->validate([
-            'pedido_id' => ['required', 'integer', 'exists:pedidos,id'],
+            'pedido_id' => ['required', 'integer'],
             'telefono' => ['required', 'string', 'max:30'],
         ]);
 
+        // Sin la regla `exists` a propósito: un id inexistente y un teléfono
+        // incorrecto devuelven el mismo mensaje genérico, para que un tercero
+        // no pueda enumerar qué números de pedido existen.
         $pedido = Pedido::where('id', $datos['pedido_id'])
             ->where('telefono', $datos['telefono'])
             ->first();

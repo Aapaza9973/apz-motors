@@ -349,6 +349,17 @@ class PedidoTest extends TestCase
         $this->get('/catalogo/pedidos/'.$pedido->id.'/estado?telefono=99999999')->assertNotFound();
     }
 
+    public function test_consulta_con_id_inexistente_devuelve_el_mismo_mensaje_generico(): void
+    {
+        // Un id que no existe no debe revelar si el número es válido:
+        // responde con el mismo mensaje genérico que un teléfono incorrecto.
+        $this->from('/catalogo/consultar')
+            ->followingRedirects()
+            ->post('/catalogo/consultar', ['pedido_id' => 999999, 'telefono' => '71234567'])
+            ->assertSee('No encontramos un pedido con ese número y teléfono.')
+            ->assertDontSee('seleccionado es inválido');
+    }
+
     public function test_bandeja_interna_exige_autenticacion_y_permiso(): void
     {
         $this->get('/pedidos')->assertRedirect('/login');
