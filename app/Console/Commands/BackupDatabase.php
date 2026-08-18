@@ -56,7 +56,7 @@ class BackupDatabase extends Command
 
         $comando = implode(' ', array_map('escapeshellarg', $dump));
 
-        $this->line("Respaldo → storage/app/{$ruta}");
+        $this->line('Respaldo → '.Storage::disk('local')->path($ruta));
 
         if ($this->option('pretend')) {
             $this->line('  [pretend] '.$comando.' | gzip');
