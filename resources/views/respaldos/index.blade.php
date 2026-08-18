@@ -23,6 +23,7 @@
                         <th class="px-5 py-3">Archivo</th>
                         <th class="px-5 py-3 text-right">Tamaño</th>
                         <th class="px-5 py-3">Detalle</th>
+                        <th class="px-5 py-3">Acción</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -39,10 +40,22 @@
                             <td class="px-5 py-3 font-mono text-xs text-gray-800">{{ $respaldo->archivo ?: '—' }}</td>
                             <td class="px-5 py-3 text-right num text-gray-700">{{ $respaldo->tamano_bytes !== null ? number_format($respaldo->tamano_bytes / 1024, 1).' KB' : '—' }}</td>
                             <td class="px-5 py-3 text-gray-500 max-w-[280px] truncate" title="{{ $respaldo->mensaje }}">{{ $respaldo->mensaje ?: '—' }}</td>
+                            <td class="px-5 py-3">
+                                @if ($respaldo->archivo)
+                                    <a href="{{ route('respaldos.descargar', $respaldo) }}"
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 text-xs font-medium transition"
+                                        title="Descargar {{ basename($respaldo->archivo) }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                                        Descargar
+                                    </a>
+                                @else
+                                    <span class="text-gray-300">—</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-5 py-4">
+                            <td colspan="6" class="px-5 py-4">
                                 <x-empty-state
                                     titulo="Sin ejecuciones registradas"
                                     mensaje="Cuando el respaldo diario corra (o lo ejecutes a mano con php artisan backup:database), cada resultado quedará registrado acá."

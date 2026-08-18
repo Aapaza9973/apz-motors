@@ -4,19 +4,20 @@ use App\Http\Controllers\Admin\CategoriaController;
 use App\Http\Controllers\Admin\ProductoController;
 use App\Http\Controllers\Admin\ProductoImportacionController;
 use App\Http\Controllers\Admin\ReporteController;
+use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AlertaController;
-use App\Http\Controllers\Admin\RespaldoController;
 use App\Http\Controllers\CarritoController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DevolucionController;
-use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Vendedor\CajaController;
 use App\Http\Controllers\Vendedor\ClienteController;
 use App\Http\Controllers\Vendedor\VentaController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -140,6 +141,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // ---- Respaldos de base de datos (historial consultable, solo Admin) ----
     Route::middleware('can:ver respaldos')->get('/respaldos', [RespaldoController::class, 'index'])->name('respaldos.index');
+    Route::middleware('can:ver respaldos')->get('/respaldos/{respaldo}/descargar', [RespaldoController::class, 'descargar'])->name('respaldos.descargar');
 
     // ---- Usuarios y roles (solo Admin) ----
     Route::middleware('can:ver usuarios')->get('/usuarios', [UserController::class, 'index'])->name('usuarios.index');
@@ -181,6 +183,6 @@ Route::get('/catalogo/pedidos/{pedido}/cancelar/{token}', [PedidoController::cla
 // Webhook de Stripe (sin CSRF ni autenticación: lo firma la propia pasarela).
 Route::post('/webhooks/stripe', [PagoController::class, 'webhookStripe'])
     ->name('webhooks.stripe')
-    ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+    ->withoutMiddleware(ValidateCsrfToken::class);
 
 require __DIR__.'/auth.php';

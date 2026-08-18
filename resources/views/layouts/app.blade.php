@@ -76,6 +76,12 @@
                             </div>
                         @endif
 
+                        @if (session('status-error'))
+                            <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm" role="alert">
+                                <span class="num font-semibold">✗</span> {{ session('status-error') }}
+                            </div>
+                        @endif
+
                         @if ($errors->any())
                             <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm" role="alert">
                                 <ul class="list-disc list-inside">
