@@ -155,6 +155,33 @@
 .btn-dark { background-color: var(--carbon); }
 .btn-dark:hover { background-color: var(--carbon-2); }
 
+/* Variante flame: mismo cuerpo que .btn (primario de marca). Se usa sola,
+   sin .btn base, en el catálogo público y en los flujos de pedido. */
+.btn-flame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    background-color: var(--flame);
+    color: #fff;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.btn-flame:hover { background-color: var(--ember); color: #fff; }
+.btn-flame:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.btn-flame:active { transform: translateY(1px); }
+
+.btn-secondary {
+    background-color: var(--plate);
+    color: var(--ink);
+    border: 1px solid var(--line);
+}
+.btn-secondary:hover { background-color: var(--deck); }
+
 .btn-ghost {
     background-color: transparent;
     color: var(--steel);
