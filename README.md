@@ -19,7 +19,7 @@ Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de
 | **Cierre de caja** | Arqueo por vendedor/día: resumen, totales por método de pago, registro del cierre (una vez por día) y **exportación PDF** con identidad corporativa |
 | **Reportes** | Ventas por rango (hoy/semana/mes/personalizado), productos más vendidos, inventario con valor en stock; exportación **PDF** (DomPDF) y **Excel/CSV** con identidad corporativa |
 | **Alertas de stock** | Automáticas al bajar del umbral, bandeja con "marcar leída" y notificación en la barra |
-| **Catálogo público** | Página pública (`/catalogo`) con banner de marca, filtros por categoría y disponibilidad en tiempo real |
+| **Catálogo público** | Página pública (`/catalogo`) con banner de marca, búsqueda, filtros por categoría, **ordenamiento por precio/novedad**, **ficha de detalle por producto** con panel de pedido y relacionados, disponibilidad en tiempo real y CTA claro de pedido online | **Carga masiva de catálogo**: `CatalogoSeeder` agrega 31 productos reales (eléctricos, iluminación, frenos, transmisión, accesorios…) con stock trazable como movimiento de entrada |
 | **Pedidos en línea** | Carrito en sesión → checkout con datos del cliente y **pago en línea (Stripe/PayPal o simulación)** → **bandeja interna** donde el vendedor confirma y convierte en venta (revalida stock, genera cliente y registra el pago Completado); **correos al cliente** por estado con **enlace seguro (token)** para confirmar/cancelar y **consulta pública de estado** |
 | **Fidelización de clientes** | Puntos por compra pagada (1 pt por cada Bs 10), canje como descuento en el POS (10 pts = Bs 1), ajustes manuales con trazabilidad y reversión proporcional al aprobar devoluciones |
 | **Tablero de instrumentos** | KPIs del día + panel de instrumentos: tacómetro de ventas y medidor de salud de stock (SVG con datos reales) |
@@ -37,7 +37,7 @@ npm install && npm run build
 cp .env.example .env
 php artisan key:generate
 
-# 3. Migraciones y datos demo (3 usuarios, 6 categorías, 12 productos, 5 clientes, ventas…)
+# 3. Migraciones y datos demo (3 usuarios, 9 categorías, 48 productos, 5 clientes, ventas…)
 php artisan migrate:fresh --seed
 
 # 4. Servidor
@@ -133,10 +133,10 @@ El comprobante de venta se imprime **solo él** (sin el chrome de la app): el bo
 
 ## 🧪 Tests
 ```bash
-php artisan test   # 146 tests / 532 aserciones (SQLite en memoria, aislado)
+php artisan test   # 157 tests / 563 aserciones (SQLite en memoria, aislado)
 ```
 
-Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente, **autoimpresión condicional del POS**, **preferencias de papel y de autoimpresión por usuario**, **auditoría de impresión del comprobante**), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), catálogo público, **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
+Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente, **autoimpresión condicional del POS**, **preferencias de papel y de autoimpresión por usuario**, **auditoría de impresión del comprobante**), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), **catálogo público rediseñado** (ficha de detalle por producto, ordenamiento por precio y CTA de pedido online), **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
 
 ## 🔄 CI (GitHub Actions)
 
