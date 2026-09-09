@@ -163,6 +163,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Catálogo público de repuestos y pedidos en línea (sin autenticación).
 Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
+Route::get('/catalogo/productos/{producto}', [CatalogoController::class, 'show'])->name('catalogo.producto');
 Route::post('/catalogo/carrito/agregar', [CarritoController::class, 'agregar'])->name('carrito.agregar');
 Route::get('/catalogo/carrito', [CarritoController::class, 'ver'])->name('carrito.ver');
 Route::post('/catalogo/carrito/actualizar', [CarritoController::class, 'actualizar'])->name('carrito.actualizar');
