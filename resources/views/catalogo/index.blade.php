@@ -128,6 +128,9 @@
 
         <div>{{ $productos->links() }}</div>
 
+        <!-- Encuesta exprés de mejora del catálogo -->
+        <x-encuesta-catalogo origen="catalogo" />
+
         <!-- CTA de pedido -->
         <div class="bg-gray-900 rounded-xl overflow-hidden">
             <div class="hazard h-1"></div>

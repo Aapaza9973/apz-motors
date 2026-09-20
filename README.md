@@ -1,5 +1,7 @@
 # APZ Motor's — Sistema de Ventas e Inventario
 
+![Marca de empresa](<Logo APZ Motors.png>)
+
 Sistema web para la tienda de repuestos y accesorios de motocicletas **APZ Motor's** (La Paz, Bolivia), construido con **Laravel 13**, **Blade + Tailwind CSS**, roles con **Spatie Laravel-Permission** y **MySQL/MariaDB**.
 
 Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de stock, pagos en línea (Stripe/PayPal), devoluciones, reportes exportables (PDF/CSV), cierre de caja por vendedor, respaldo diario de base de datos, monitoreo con Laravel Telescope y un catálogo público con la identidad de marca.
@@ -22,6 +24,7 @@ Incluye punto de venta (POS), control de inventario con trazabilidad, alertas de
 | **Catálogo público** | Página pública (`/catalogo`) con banner de marca, búsqueda, filtros por categoría, **ordenamiento por precio/novedad**, **ficha de detalle por producto** con panel de pedido y relacionados, disponibilidad en tiempo real y CTA claro de pedido online | **Carga masiva de catálogo**: `CatalogoSeeder` agrega 31 productos reales (eléctricos, iluminación, frenos, transmisión, accesorios…) con stock trazable como movimiento de entrada |
 | **Pedidos en línea** | Carrito en sesión → checkout con datos del cliente y **pago en línea (Stripe/PayPal o simulación)** → **bandeja interna** donde el vendedor confirma y convierte en venta (revalida stock, genera cliente y registra el pago Completado); **correos al cliente** por estado con **enlace seguro (token)** para confirmar/cancelar y **consulta pública de estado** |
 | **Fidelización de clientes** | Puntos por compra pagada (1 pt por cada Bs 10), canje como descuento en el POS (10 pts = Bs 1), ajustes manuales con trazabilidad y reversión proporcional al aprobar devoluciones |
+| **Encuesta del catálogo** | Widget anónimo de 3 preguntas embebido en el catálogo y la ficha de producto (sin cuenta ni datos personales); vista Admin con satisfacción promedio, facilidad para encontrar, repuestos faltantes más mencionados y respuestas detalladas (permiso `ver encuestas`) |
 | **Tablero de instrumentos** | KPIs del día + panel de instrumentos: tacómetro de ventas y medidor de salud de stock (SVG con datos reales) |
 | **Respaldo diario** | `php artisan backup:database` (mysqldump + gzip, retención 7 días) programado en el scheduler; **historial consultable** en la app y **correo** al administrador en cada ejecución |
 | **Monitoreo** | Laravel Telescope (Fase 3) con gate de Admin y etiquetado de auditoría por usuario/rol |
@@ -133,10 +136,10 @@ El comprobante de venta se imprime **solo él** (sin el chrome de la app): el bo
 
 ## 🧪 Tests
 ```bash
-php artisan test   # 157 tests / 563 aserciones (SQLite en memoria, aislado)
+php artisan test   # 164 tests / 587 aserciones (SQLite en memoria, aislado)
 ```
 
-Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente, **autoimpresión condicional del POS**, **preferencias de papel y de autoimpresión por usuario**, **auditoría de impresión del comprobante**), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), **catálogo público rediseñado** (ficha de detalle por producto, ordenamiento por precio y CTA de pedido online), **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
+Cobertura: ventas y stock (decremento, alertas, bloqueo por stock insuficiente, **autoimpresión condicional del POS**, **preferencias de papel y de autoimpresión por usuario**, **auditoría de impresión del comprobante**), accesos por rol (200/403), pagos simulados, devoluciones, exportaciones PDF/CSV, cierre de caja (incluida su exportación PDF), **catálogo público rediseñado** (ficha de detalle por producto, ordenamiento por precio y CTA de pedido online), **encuesta anónima de mejora del catálogo** (envío público sin cuenta + panel Admin con resumen), **pedidos en línea de punta a punta** (carrito → pedido → pago en línea/simulación → confirmación → venta pagada, con stock insuficiente, cancelación, token del correo, consulta pública de estado, **aviso WhatsApp/log al taller**, **jobs en cola para las notificaciones**, **filtros y paginación de la bandeja con filtros preservados entre páginas**, **origen del pedido en el detalle de venta**), **importación masiva de productos desde CSV** (validación con acción prevista Nuevo/Actualizar, creación/actualización sin duplicados, lote de movimientos, reporte descargable y **historial de importaciones con permisos**), **fidelización de clientes** (acumulación por venta pagada idempotente, canje con descuento y bloqueo de saldo, ajustes manuales con motivo, reversión proporcional por devolución, acreditación al confirmar pago en línea y permisos de ajuste) e historial/notificación de respaldo.
 
 ## 🔄 CI (GitHub Actions)
 

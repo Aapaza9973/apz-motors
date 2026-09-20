@@ -78,7 +78,7 @@ class PuntosTest extends TestCase
         $this->assertEquals('acumulado', $punto->tipo);
         $this->assertEquals(11, $punto->puntos);
         $this->assertEquals($venta->id, $punto->venta_id);
-        $this->assertStringContainsString('venta #'.$venta->id, $punto->concepto);
+        $this->assertStringContainsString('venta #' . $venta->id, $punto->concepto);
     }
 
     public function test_la_acumulacion_es_idempotente_por_venta(): void
