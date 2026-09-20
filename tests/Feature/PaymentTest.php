@@ -25,6 +25,12 @@ class PaymentTest extends TestCase
     {
         parent::setUp();
 
+        // Forzar modo simulación para tests: sin claves API configuradas.
+        config(['services.stripe.secret' => '']);
+        config(['services.stripe.webhook_secret' => '']);
+        config(['services.paypal.client_id' => '']);
+        config(['services.paypal.secret' => '']);
+
         $this->seed(RoleSeeder::class);
         $this->vendedor = User::factory()->create()->assignRole('Vendedor');
 

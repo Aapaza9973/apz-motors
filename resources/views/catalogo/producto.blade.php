@@ -127,6 +127,9 @@
             </div>
         </div>
 
+        <!-- Encuesta exprés de mejora del catálogo -->
+        <x-encuesta-catalogo origen="producto" />
+
         <!-- Relacionados de la misma categoría -->
         @if ($relacionados->isNotEmpty())
             <div>

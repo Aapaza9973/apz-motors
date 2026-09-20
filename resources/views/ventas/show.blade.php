@@ -138,32 +138,47 @@
         @endcan
 
         @if (! in_array($venta->estado, ['Pagado', 'Cancelada']))
-            <div class="mt-6 no-print bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 class="font-semibold text-gray-800 text-lg">Cobrar en línea</h2>
-                <p class="text-sm text-gray-500 mt-1">La venta está <strong>Pendiente</strong>. Envía el cobro a través de una pasarela de pago (Fase 2).</p>
+            @php
+                $methodsService = app(\App\Services\PaymentMethodsService::class);
+                $metodosDisponibles = $methodsService->onlineMethods();
+                $simulacionGlobal = collect($metodosDisponibles)->contains('simulacion', true);
+            @endphp
+            <div class="mt-6 no-print">
+                <x-payment-methods :methods="$metodosDisponibles" :amount="$venta->total">
+                    <x-slot name="title">Cobrar esta venta</x-slot>
+                    <x-slot name="subtitle">La venta está <strong>Pendiente</strong> — elegí cómo enviar el cobro.</x-slot>
+                    <x-slot name="currencyNote">
+                        Los métodos en <strong>BOB</strong> (Tarjeta, Yape) se registran en bolivianos. Los internacionales (Stripe, PayPal) usan <strong>USD</strong>.
+                    </x-slot>
+                </x-payment-methods>
 
                 <div class="mt-4 flex flex-wrap gap-3">
-                    @foreach (['Stripe', 'PayPal'] as $metodo)
+                    @foreach ($metodosDisponibles as $metodo)
                         <form method="POST" action="{{ route('pagos.iniciar', $venta) }}">
                             @csrf
-                            <input type="hidden" name="metodo" value="{{ $metodo }}">
-                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
-                                {{ $metodo === 'Stripe' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-[#003087] hover:bg-[#00256b] text-white' }}">
-                                Cobrar con {{ $metodo }}
+                            <input type="hidden" name="metodo" value="{{ $metodo['id'] }}">
+                            <button type="submit"
+                                class="btn {{ $metodo['id'] === 'Stripe' ? 'btn-dark' : ($metodo['id'] === 'PayPal' ? 'bg-blue-600 hover:bg-blue-800 text-white' : 'btn-flame') }}">
+                                {{ $metodo['title'] }}
+                                @if ($metodo['simulacion'])
+                                    <span class="text-[10px] font-mono uppercase tracking-wide opacity-80">(simulación)</span>
+                                @endif
                             </button>
                         </form>
                     @endforeach
                 </div>
 
-                @php
-                    $paymentService = app(\App\Services\PaymentService::class);
-                    $simulacion = $paymentService->usaSimulacion('Stripe') || $paymentService->usaSimulacion('PayPal');
-                @endphp
-                @if ($simulacion)
-                    <p class="mt-3 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                        ⚠️ Modo <strong>simulación</strong>: no hay claves API configuradas (STRIPE_KEY / PAYPAL_CLIENT_ID en <code>.env</code>).
-                        El cobro se registrará como completado para poder probar el flujo.
-                    </p>
+                @if ($simulacionGlobal)
+                    <div class="mt-3 rounded-xl bg-yellow-50 border border-yellow-200 px-4 py-3">
+                        <p class="text-sm text-amber-900 flex items-start gap-2.5">
+                            <span class="inline-flex w-5 h-5 rounded-full bg-amber-500 items-center justify-center shrink-0 text-xs font-bold text-white">!</span>
+                            <span>
+                                <strong>Modo de simulación activo.</strong>
+                                No hay claves API configuradas para alguna de las pasarelas (STRIPE_KEY / PAYPAL_CLIENT_ID en <code>.env</code>).
+                                El cobro se registrará como completado para que puedas probar el flujo completo.
+                            </span>
+                        </p>
+                    </div>
                 @endif
             </div>
         @endif

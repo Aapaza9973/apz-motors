@@ -11,6 +11,7 @@ use App\Http\Controllers\CarritoController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DevolucionController;
+use App\Http\Controllers\EncuestaCatalogoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PedidoController;
 use App\Http\Controllers\ProfileController;
@@ -143,6 +144,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:ver respaldos')->get('/respaldos', [RespaldoController::class, 'index'])->name('respaldos.index');
     Route::middleware('can:ver respaldos')->get('/respaldos/{respaldo}/descargar', [RespaldoController::class, 'descargar'])->name('respaldos.descargar');
 
+    // Encuesta de mejora del catálogo (solo consulta interna).
+    Route::middleware('can:ver encuestas')->get('/encuestas', [EncuestaCatalogoController::class, 'index'])->name('encuestas.index');
+
     // ---- Usuarios y roles (solo Admin) ----
     Route::middleware('can:ver usuarios')->get('/usuarios', [UserController::class, 'index'])->name('usuarios.index');
     Route::middleware('can:crear usuarios')->group(function () {
@@ -164,6 +168,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Catálogo público de repuestos y pedidos en línea (sin autenticación).
 Route::get('/catalogo', [CatalogoController::class, 'index'])->name('catalogo.index');
 Route::get('/catalogo/productos/{producto}', [CatalogoController::class, 'show'])->name('catalogo.producto');
+Route::post('/catalogo/encuesta', [EncuestaCatalogoController::class, 'store'])->name('encuesta.store');
 Route::post('/catalogo/carrito/agregar', [CarritoController::class, 'agregar'])->name('carrito.agregar');
 Route::get('/catalogo/carrito', [CarritoController::class, 'ver'])->name('carrito.ver');
 Route::post('/catalogo/carrito/actualizar', [CarritoController::class, 'actualizar'])->name('carrito.actualizar');

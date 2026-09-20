@@ -21,7 +21,7 @@ class PagoController extends Controller
     public function iniciar(Request $request, Venta $venta): RedirectResponse
     {
         $datos = $request->validate([
-            'metodo' => ['required', 'in:Stripe,PayPal'],
+            'metodo' => ['required', 'in:Stripe,PayPal,Tarjeta,Yape'],
         ]);
 
         if ($venta->estado === 'Pagado') {

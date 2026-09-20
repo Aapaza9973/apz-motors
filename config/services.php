@@ -35,6 +35,9 @@ return [
         ],
     ],
 
+    // Moneda para cobros en línea (USD por defecto; BOB no soportado por PayPal).
+    'payments_currency' => env('PAYMENTS_CURRENCY', 'USD'),
+
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),

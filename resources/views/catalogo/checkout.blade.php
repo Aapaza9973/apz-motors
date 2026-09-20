@@ -48,11 +48,13 @@
 
                 <div>
                     <p class="block text-sm font-medium text-gray-700">Método de pago</p>
-                    <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div class="mt-2 rounded-lg border border-gray-200 bg-white p-4 space-y-3">
                         @php($metodos = [
                             'Efectivo' => ['título' => 'Pagar al recibir', 'detalle' => 'Abonás en el taller cuando retirás.', 'sim' => false],
-                            'Stripe' => ['título' => 'Tarjeta (Stripe)', 'detalle' => 'Pagás ahora con tarjeta.', 'sim' => $pagoSimulacion['Stripe']],
-                            'PayPal' => ['título' => 'PayPal', 'detalle' => 'Pagás ahora con tu cuenta PayPal.', 'sim' => $pagoSimulacion['PayPal']],
+                            'Stripe' => ['título' => 'Tarjeta (Stripe)', 'detalle' => 'Pagás ahora con tarjeta (USD).', 'sim' => $pagoSimulacion['Stripe']],
+                            'PayPal' => ['título' => 'PayPal', 'detalle' => 'Pagás ahora con tu cuenta PayPal (USD).', 'sim' => $pagoSimulacion['PayPal']],
+                            'Tarjeta' => ['título' => 'Tarjeta (Débito/Crédito)', 'detalle' => 'Pagás con tarjeta de débito o crédito en BOB.', 'sim' => $pagoSimulacion['Tarjeta']],
+                            'Yape' => ['título' => 'Yape', 'detalle' => 'Pago electrónico en BOB (BVL).', 'sim' => $pagoSimulacion['Yape']],
                         ])
                         @foreach ($metodos as $valor => $metodo)
                             <label class="relative flex items-start gap-2.5 rounded-xl border p-3.5 cursor-pointer transition has-[:checked]:border-orange-500 has-[:checked]:ring-1 has-[:checked]:ring-orange-500 {{ old('metodo_pago', 'Efectivo') === $valor ? 'border-orange-500 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300' }}">
@@ -62,8 +64,8 @@
                                     <span class="block text-sm font-semibold text-gray-900">{{ $metodo['título'] }}</span>
                                     <span class="block text-xs text-gray-500 mt-0.5">{{ $metodo['detalle'] }}
                                         @if ($metodo['sim'])
-                                            <span class="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-amber-700">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>modo simulación
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block"></span>simulación
                                             </span>
                                         @endif
                                     </span>

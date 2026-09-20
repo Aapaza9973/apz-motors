@@ -26,6 +26,13 @@ class PedidoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Forzar modo simulación para tests: sin claves API configuradas.
+        config(['services.stripe.secret' => '']);
+        config(['services.stripe.webhook_secret' => '']);
+        config(['services.paypal.client_id' => '']);
+        config(['services.paypal.secret' => '']);
+
         $this->seed(RoleSeeder::class);
     }
 
@@ -486,7 +493,7 @@ class PedidoTest extends TestCase
         $this->post('/catalogo/pedidos', [
             'nombre_cliente' => 'Método raro',
             'telefono' => '71234567',
-            'metodo_pago' => 'Tarjeta',
+            'metodo_pago' => 'Bitcoin',
         ])->assertSessionHasErrors('metodo_pago');
 
         $this->assertCount(0, Pedido::all());

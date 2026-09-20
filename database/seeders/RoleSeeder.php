@@ -68,6 +68,7 @@ class RoleSeeder extends Seeder
         'cierres de caja' => ['ver', 'crear'],
         'pedidos' => ['ver', 'confirmar'],
         'respaldos' => ['ver'],
+        'encuestas' => ['ver'],
     ];
 
     private const PERMISOS_EXTRA = [

@@ -17,10 +17,22 @@ class PaymentService
 {
     public function __construct(private PuntosService $puntos) {}
 
-    /** Moneda configurable (por defecto Bolivianos; operadores pueden usar USD). */
+    /**
+     * Moneda para el panel interno (ventas presenciales).
+     * Por defecto Bolivianos (BOB).
+     */
     public function moneda(): string
     {
         return config('app.currency', 'BOB');
+    }
+
+    /**
+     * Moneda para pagos en línea (pasarelas).
+     * USD es universalmente soportada por Stripe y PayPal.
+     */
+    public function monedaOnline(): string
+    {
+        return config('services.payments_currency', 'USD');
     }
 
     /**
@@ -29,7 +41,10 @@ class PaymentService
      */
     public function estaDisponible(string $metodo): bool
     {
-        return $metodo === 'Stripe' || $metodo === 'PayPal';
+        return match ($metodo) {
+            'Stripe', 'PayPal', 'Tarjeta', 'Yape' => true,
+            default => false,
+        };
     }
 
     public function usaSimulacion(string $metodo): bool
@@ -37,6 +52,7 @@ class PaymentService
         return match ($metodo) {
             'Stripe' => blank(config('services.stripe.secret')),
             'PayPal' => blank(config('services.paypal.client_id')) || blank(config('services.paypal.secret')),
+            'Tarjeta', 'Yape' => true,
             default => true,
         };
     }
@@ -165,7 +181,7 @@ class PaymentService
             'payment_method_types' => ['card'],
             'line_items' => [[
                 'price_data' => [
-                    'currency' => strtolower($this->moneda()),
+                    'currency' => strtolower($this->monedaOnline()),
                     'unit_amount' => $this->aCentavos($pedido->total),
                     'product_data' => ['name' => "Pedido #{$pedido->id} — APZ Motor's"],
                 ],
@@ -198,7 +214,7 @@ class PaymentService
                     'reference_id' => "pedido-{$pedido->id}",
                     'description' => "Pedido #{$pedido->id} — APZ Motor's",
                     'amount' => [
-                        'currency_code' => $this->moneda(),
+                        'currency_code' => $this->monedaOnline(),
                         'value' => number_format((float) $pedido->total, 2, '.', ''),
                     ],
                 ]],
@@ -282,7 +298,7 @@ class PaymentService
             'payment_method_types' => ['card'],
             'line_items' => [[
                 'price_data' => [
-                    'currency' => strtolower($this->moneda()),
+                    'currency' => strtolower($this->monedaOnline()),
                     'unit_amount' => $this->aCentavos($venta->total),
                     'product_data' => ['name' => "Venta #{$venta->id} — APZ Motor's"],
                 ],
@@ -315,7 +331,7 @@ class PaymentService
                     'reference_id' => (string) $venta->id,
                     'description' => "Venta #{$venta->id} — APZ Motor's",
                     'amount' => [
-                        'currency_code' => $this->moneda(),
+                        'currency_code' => $this->monedaOnline(),
                         'value' => number_format((float) $venta->total, 2, '.', ''),
                     ],
                 ]],

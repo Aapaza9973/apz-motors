@@ -34,10 +34,7 @@ class PedidoController extends Controller
         return view('catalogo.checkout', [
             'items' => Carrito::detalle(),
             'total' => Carrito::total(),
-            'pagoSimulacion' => [
-                'Stripe' => $this->payments->usaSimulacion('Stripe'),
-                'PayPal' => $this->payments->usaSimulacion('PayPal'),
-            ],
+            'pagoSimulacion' => array_fill_keys(['Stripe', 'PayPal', 'Tarjeta', 'Yape'], true),
         ]);
     }
 
@@ -49,7 +46,7 @@ class PedidoController extends Controller
             'email' => ['nullable', 'email', 'max:120'],
             'direccion' => ['nullable', 'string', 'max:255'],
             'nota' => ['nullable', 'string', 'max:500'],
-            'metodo_pago' => ['required', 'in:Efectivo,Stripe,PayPal'],
+            'metodo_pago' => ['required', 'in:Efectivo,Stripe,PayPal,Tarjeta,Yape'],
         ]);
 
         try {
@@ -91,8 +88,7 @@ class PedidoController extends Controller
      * marca el pedido como Pagado para poder probar el flujo completo.
      */
     public function pagoSimular(Pedido $pedido, string $metodo): RedirectResponse
-    {
-        if (! in_array($metodo, ['Stripe', 'PayPal'], true) || ! $this->payments->usaSimulacion($metodo)) {
+    {            if (! in_array($metodo, ['Stripe', 'PayPal', 'Tarjeta', 'Yape'], true) || ! $this->payments->usaSimulacion($metodo)) {
             abort(404);
         }
 
